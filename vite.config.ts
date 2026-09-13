@@ -1,35 +1,33 @@
+import { dirname, resolve } from 'node:path'
 import process from 'node:process'
+import { fileURLToPath } from 'node:url'
 import ui from '@nuxt/ui/vite'
 import vue from '@vitejs/plugin-vue'
 import { defineConfig } from 'vite'
-import vueLayouts from 'vite-plugin-vue-layouts'
-import vueRouter from 'vue-router/vite'
 
 const host = process.env.TAURI_DEV_HOST
 
-// https://vite.dev/config/
 export default defineConfig(() => ({
   plugins: [
-    vueRouter({
-      dts: 'src/route-map.d.ts',
-    }),
-    vueLayouts(),
     vue(),
     ui({
-      ui: {
-        colors: {
-          primary: 'green',
-          neutral: 'zinc',
-        },
+      autoImport: {
+        imports: [
+          'vue',
+          '@vueuse/core',
+        ],
       },
     }),
   ],
-
-  // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
-  //
-  // 1. prevent Vite from obscuring rust errors
+  resolve: {
+    alias: {
+      '~': resolve(dirname(fileURLToPath(import.meta.url)), 'src'),
+    },
+  },
+  optimizeDeps: {
+    holdUntilCrawlEnd: false,
+  },
   clearScreen: false,
-  // 2. tauri expects a fixed port, fail if that port is not available
   server: {
     port: 1420,
     strictPort: true,
@@ -42,7 +40,6 @@ export default defineConfig(() => ({
         }
       : undefined,
     watch: {
-      // 3. tell Vite to ignore watching `src-tauri`
       ignored: ['**/src-tauri/**'],
     },
   },

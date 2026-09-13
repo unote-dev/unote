@@ -1,3 +1,8 @@
+minimumReleaseAgeExcludePrune: true
+trustPolicy: no-downgrade
+shellEmulator: true
+
 allowBuilds:
   esbuild: true
+  unrs-resolver: true
   vue-demi: true

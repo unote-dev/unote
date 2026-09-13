@@ -1,22 +1,17 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
+    "target": "ES2021",
     "jsx": "preserve",
-    "lib": ["ES2020", "DOM"],
+    "lib": ["ES2021", "DOM", "DOM.Iterable"],
     "useDefineForClassFields": true,
     "module": "ESNext",
-
-    /* Bundler mode */
     "moduleResolution": "bundler",
     "paths": {
-      "#build/ui/*": [
-        "./node_modules/.nuxt-ui/ui/*"
-      ]
+      "~/*": ["./src/*"],
+      "#build/ui/*": ["./node_modules/.nuxt-ui/ui/*"]
     },
     "resolveJsonModule": true,
     "allowImportingTsExtensions": true,
-
-    /* Linting */
     "strict": true,
     "noFallthroughCasesInSwitch": true,
     "noUnusedLocals": true,
@@ -25,9 +20,7 @@
     "isolatedModules": true,
     "skipLibCheck": true
   },
-  "types": [
-    "vite/client"
-  ],
+  "types": ["vite/client"],
   "references": [{ "path": "./tsconfig.node.json" }],
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "auto-imports.d.ts", "components.d.ts"]
 }

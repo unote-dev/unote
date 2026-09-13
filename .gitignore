@@ -13,8 +13,6 @@ dist-ssr
 *.local
 
 # Editor directories and files
-.vscode/*
-!.vscode/extensions.json
 .idea
 .DS_Store
 *.suo
@@ -26,3 +24,6 @@ dist-ssr
 # Auto-generated type declarations
 auto-imports.d.ts
 components.d.ts
+
+# Environment secrets
+.env

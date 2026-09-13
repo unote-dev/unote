@@ -12,6 +12,7 @@ export default antfu(
   {
     ignores: [
       'src-tauri',
+      'docs/IMPLEMENTATION.md',
     ],
   },
 )
