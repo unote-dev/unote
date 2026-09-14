@@ -1,7 +1,34 @@
-# Tauri + Vue + TypeScript
+# Unote
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+Git 优先的轻量桌面笔记应用。仓库中的真实目录和文件就是内容模型。
 
-## Recommended IDE Setup
+## 技术栈
 
-- [VS Code](https://code.visualstudio.com/) + [Vue - Official](https://marketplace.visualstudio.com/items?itemName=Vue.volar) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+- Tauri 2 + Rust
+- React 19 + Vite 8 + TypeScript
+- Tailwind CSS 4 + shadcn/ui
+- MDXEditor、Excalidraw、React Flow
+
+## 开发
+
+```bash
+pnpm install
+pnpm dev
+```
+
+桌面开发：
+
+```bash
+pnpm tauri dev
+```
+
+检查：
+
+```bash
+pnpm lint
+pnpm test
+pnpm build
+cd src-tauri && cargo test
+```
+
+当前架构和后续阶段见 [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) 与 [docs/REWRITE_PLAN.md](docs/REWRITE_PLAN.md)。

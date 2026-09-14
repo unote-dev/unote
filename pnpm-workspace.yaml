@@ -1,8 +1,12 @@
 minimumReleaseAgeExcludePrune: true
+
 trustPolicy: no-downgrade
+trustPolicyExclude:
+  # Excalidraw -> Mermaid parser currently resolves this non-provenance release.
+  - langium@3.3.1
+
 shellEmulator: true
 
 allowBuilds:
   esbuild: true
   unrs-resolver: true
-  vue-demi: true

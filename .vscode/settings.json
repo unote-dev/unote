@@ -29,7 +29,6 @@
     "javascriptreact",
     "typescript",
     "typescriptreact",
-    "vue",
     "html",
     "markdown",
     "json",
@@ -54,6 +53,5 @@
   "editor.quickSuggestions": {
     "strings": "on"
   },
-  "tailwindCSS.classAttributes": ["class", "ui"],
-  "tailwindCSS.classFunctions": ["defineAppConfig"]
+  "tailwindCSS.classAttributes": ["class", "className"]
 }

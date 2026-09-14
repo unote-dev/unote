@@ -3,6 +3,7 @@ import antfu from '@antfu/eslint-config'
 export default antfu(
   {
     formatters: true,
+    react: true,
   },
   {
     rules: {
@@ -12,7 +13,7 @@ export default antfu(
   {
     ignores: [
       'src-tauri',
-      'docs/IMPLEMENTATION.md',
+      'dist',
     ],
   },
 )

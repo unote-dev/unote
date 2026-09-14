@@ -1,27 +1,20 @@
 import { dirname, resolve } from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
-import ui from '@nuxt/ui/vite'
-import vue from '@vitejs/plugin-vue'
+import tailwindcss from '@tailwindcss/vite'
+import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 
 const host = process.env.TAURI_DEV_HOST
 
 export default defineConfig(() => ({
   plugins: [
-    vue(),
-    ui({
-      autoImport: {
-        imports: [
-          'vue',
-          '@vueuse/core',
-        ],
-      },
-    }),
+    react(),
+    tailwindcss(),
   ],
   resolve: {
     alias: {
-      '~': resolve(dirname(fileURLToPath(import.meta.url)), 'src'),
+      '@': resolve(dirname(fileURLToPath(import.meta.url)), 'src'),
     },
   },
   optimizeDeps: {
