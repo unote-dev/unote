@@ -38,6 +38,7 @@ export function MarkdownEditor({ dark }: { dark: boolean }) {
   return (
     <MDXEditor
       className={cn('min-h-full bg-background', dark && 'dark-theme')}
+      contentEditableClassName="px-6 py-4"
       markdown={demoMarkdown}
       plugins={[
         headingsPlugin(),
