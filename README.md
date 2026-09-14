@@ -11,6 +11,12 @@ Git 优先的轻量桌面笔记应用。仓库中的真实目录和文件就是�
 
 ## 开发
 
+先复制 `.env.example` 为 `.env`，并填写 Gitee OAuth 应用的 Client ID 和 Client Secret。OAuth 回调地址必须是：
+
+```text
+http://127.0.0.1:17331/callback
+```
+
 ```bash
 pnpm install
 pnpm dev

@@ -170,7 +170,7 @@ pub fn start_oauth(app: AppHandle) -> Result<Snapshot, String> {
     {
         let state = lock_state(&app);
         let mut inner = state.inner.lock().unwrap();
-        auth::save_session(&inner.app_data_dir, &session).map_err(|e| e.to_string())?;
+        auth::save_session(&session).map_err(|e| e.to_string())?;
         inner.session = Some(session);
         ensure_session_workspace(&mut inner)?;
     }
@@ -183,7 +183,7 @@ pub fn logout(app: AppHandle) -> Result<Snapshot, String> {
     {
         let state = lock_state(&app);
         let mut inner = state.inner.lock().unwrap();
-        auth::delete_session(&inner.app_data_dir).map_err(|e| e.to_string())?;
+        auth::delete_session().map_err(|e| e.to_string())?;
         inner.session = None;
         inner.workspace_root = None;
         inner.data = Workspace::new_empty();

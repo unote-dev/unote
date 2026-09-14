@@ -312,7 +312,7 @@ pub fn ensure_session_workspace(inner: &mut Inner) -> Result<(), String> {
     if session.token_needs_refresh() {
         let _ = auth::refresh_token(&mut session);
         inner.session = Some(session.clone());
-        let _ = auth::save_session(&inner.app_data_dir, &session);
+        let _ = auth::save_session(&session);
     }
     auth::ensure_remote_repo(&session).map_err(|e| e.to_string())?;
     let root = repo_root(
@@ -363,7 +363,7 @@ pub fn ensure_session_workspace(inner: &mut Inner) -> Result<(), String> {
 }
 
 pub fn bootstrap_inner(inner: &mut Inner) -> Result<(), String> {
-    match auth::load_session(&inner.app_data_dir).map_err(|e| e.to_string())? {
+    match auth::load_session().map_err(|e| e.to_string())? {
         Some(session) => {
             inner.session = Some(session);
             match ensure_session_workspace(inner) {

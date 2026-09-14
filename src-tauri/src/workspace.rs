@@ -10,10 +10,6 @@ pub enum WorkspaceError {
     Message(String),
 }
 
-pub fn session_path(app_data: &Path) -> PathBuf {
-    app_data.join("session.json")
-}
-
 pub fn repo_root(app_data: &Path, host: &str, login: &str, repo: &str) -> PathBuf {
     app_data.join("repos").join(host).join(login).join(repo)
 }
@@ -223,14 +219,10 @@ mod tests {
     }
 
     #[test]
-    fn paths_keep_session_outside_repo() {
+    fn repo_path_is_scoped_by_host_and_login() {
         let app_data = PathBuf::from("/tmp/unote-app");
-        let session = session_path(&app_data);
         let repo = repo_root(&app_data, "gitee", "alice", "alice.gitee.unote");
-        assert_eq!(session, PathBuf::from("/tmp/unote-app/session.json"));
         assert!(repo.starts_with(app_data.join("repos").join("gitee").join("alice")));
-        assert!(!repo.starts_with(session_path(&app_data)));
-        assert_ne!(session.parent().unwrap(), &repo);
     }
 
     #[test]

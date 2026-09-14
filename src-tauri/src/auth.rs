@@ -1,13 +1,13 @@
 use std::io::{Read, Write};
 use std::net::TcpListener;
-use std::path::Path;
 use std::sync::mpsc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use rand::RngCore;
 use serde::{Deserialize, Serialize};
 
-use crate::workspace::session_path;
+const KEYRING_SERVICE: &str = "org.unote.dev";
+const KEYRING_USER: &str = "gitee-session";
 
 pub const OAUTH_CALLBACK: &str = "http://127.0.0.1:17331/callback";
 pub const OAUTH_SCOPE: &str = "user_info projects";
@@ -259,30 +259,60 @@ pub fn ensure_remote_repo(session: &Session) -> Result<(), AuthError> {
     Ok(())
 }
 
-pub fn load_session(app_data: &Path) -> Result<Option<Session>, AuthError> {
-    let path = session_path(app_data);
-    if !path.exists() {
-        return Ok(None);
-    }
-    let text = std::fs::read_to_string(&path).map_err(|e| AuthError::Message(e.to_string()))?;
-    let session = serde_json::from_str(&text).map_err(|e| AuthError::Message(e.to_string()))?;
+fn session_entry() -> Result<keyring::Entry, AuthError> {
+    keyring::Entry::new(KEYRING_SERVICE, KEYRING_USER)
+        .map_err(|e| AuthError::Message(format!("无法访问系统凭据库：{e}")))
+}
+
+pub fn load_session() -> Result<Option<Session>, AuthError> {
+    let entry = match session_entry() {
+        Ok(entry) => entry,
+        #[cfg(target_os = "linux")]
+        Err(_) => return Ok(None),
+        #[cfg(not(target_os = "linux"))]
+        Err(error) => return Err(error),
+    };
+    let text = match entry.get_password() {
+        Ok(text) => text,
+        Err(keyring::Error::NoEntry) => return Ok(None),
+        #[cfg(target_os = "linux")]
+        Err(_) => return Ok(None),
+        #[cfg(not(target_os = "linux"))]
+        Err(e) => return Err(AuthError::Message(format!("读取登录凭据失败：{e}"))),
+    };
+    let session = serde_json::from_str(&text)
+        .map_err(|e| AuthError::Message(format!("登录凭据无效：{e}")))?;
     Ok(Some(session))
 }
 
-pub fn save_session(app_data: &Path, session: &Session) -> Result<(), AuthError> {
-    std::fs::create_dir_all(app_data).map_err(|e| AuthError::Message(e.to_string()))?;
-    let path = session_path(app_data);
+pub fn save_session(session: &Session) -> Result<(), AuthError> {
     let json = serde_json::to_string_pretty(session).map_err(|e| AuthError::Message(e.to_string()))?;
-    std::fs::write(path, json).map_err(|e| AuthError::Message(e.to_string()))?;
-    Ok(())
+    let result = session_entry().and_then(|entry| {
+        entry
+            .set_password(&json)
+            .map_err(|e| AuthError::Message(format!("保存登录凭据失败：{e}")))
+    });
+    #[cfg(target_os = "linux")]
+    return result.or(Ok(()));
+    #[cfg(not(target_os = "linux"))]
+    result
 }
 
-pub fn delete_session(app_data: &Path) -> Result<(), AuthError> {
-    let path = session_path(app_data);
-    if path.exists() {
-        std::fs::remove_file(path).map_err(|e| AuthError::Message(e.to_string()))?;
+pub fn delete_session() -> Result<(), AuthError> {
+    let entry = match session_entry() {
+        Ok(entry) => entry,
+        #[cfg(target_os = "linux")]
+        Err(_) => return Ok(()),
+        #[cfg(not(target_os = "linux"))]
+        Err(error) => return Err(error),
+    };
+    match entry.delete_credential() {
+        Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
+        #[cfg(target_os = "linux")]
+        Err(_) => Ok(()),
+        #[cfg(not(target_os = "linux"))]
+        Err(e) => Err(AuthError::Message(format!("删除登录凭据失败：{e}"))),
     }
-    Ok(())
 }
 
 pub fn complete_login(
@@ -336,11 +366,4 @@ mod tests {
         assert!(!url.contains("access_token"));
     }
 
-    #[test]
-    fn session_file_is_outside_repo_layout() {
-        let app = std::path::PathBuf::from("/data/unote");
-        assert_eq!(session_path(&app), app.join("session.json"));
-        let repo = crate::workspace::repo_root(&app, "gitee", "alice", "alice.gitee.unote");
-        assert!(!session_path(&app).starts_with(&repo));
-    }
 }
