@@ -1,5 +1,5 @@
 import type { DocumentEntry, FolderEntry } from '@/domain/workspace'
-import { ChevronDown, FilePenLine, Folder, LogOut, Moon, Plus, RefreshCw, Sun, Trash2 } from 'lucide-react'
+import { Boxes, ChevronDown, Files, FileText, Folder, LogOut, Moon, Network, Plus, RefreshCw, Sun, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { LoginScreen } from '@/auth/login-screen'
 import { useAuth } from '@/auth/use-auth'
@@ -13,9 +13,10 @@ import { useWorkspace } from '@/workspace/use-workspace'
 
 function TreeNode({ entry, onSelect, selectedPath }: { entry: FolderEntry | DocumentEntry, onSelect: (path: string) => void, selectedPath: string | null }) {
   if (!isFolder(entry)) {
+    const DocumentIcon = entry.kind === 'canvas' ? Boxes : entry.kind === 'mindmap' ? Network : FileText
     return (
       <Button className="h-8 w-full justify-start px-2 font-normal" onClick={() => onSelect(entry.path)} variant={selectedPath === entry.path ? 'secondary' : 'ghost'}>
-        <FilePenLine className="text-muted-foreground" />
+        <DocumentIcon className="text-muted-foreground" />
         <span className="truncate">{entry.name}</span>
       </Button>
     )
@@ -73,7 +74,11 @@ export function App() {
             </div>
             <nav className="min-h-0 flex-1 space-y-1 overflow-auto p-2">
               {workspace.snapshot.roots.length ? workspace.snapshot.roots.map(root => <TreeNode entry={root} key={root.path} onSelect={path => void workspace.selectDocument(path)} selectedPath={workspace.snapshot?.selectedPath ?? null} />) : <p className="px-2 py-6 text-center text-sm text-muted-foreground">仓库里还没有文档</p>}
-              <Button className="mt-2 w-full justify-start px-2 font-normal text-muted-foreground" variant="ghost">
+              <Button className="mt-2 w-full justify-start px-2 font-normal" variant="secondary">
+                <Files />
+                全部
+              </Button>
+              <Button className="w-full justify-start px-2 font-normal text-muted-foreground" variant="ghost">
                 <Trash2 />
                 回收站
               </Button>
