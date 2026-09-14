@@ -175,10 +175,13 @@ pub fn exchange_token(
         ("client_secret", client_secret),
         ("redirect_uri", OAUTH_CALLBACK),
     ];
-    let resp: TokenResponse = ureq::post("https://gitee.com/oauth/token")
-        .send_form(&form)
+    let resp: TokenResponse = reqwest::blocking::Client::new()
+        .post("https://gitee.com/oauth/token")
+        .form(&form)
+        .send()
+        .and_then(reqwest::blocking::Response::error_for_status)
         .map_err(|_| AuthError::Message("换取 token 失败".into()))?
-        .into_json()
+        .json()
         .map_err(|_| AuthError::Message("无法解析 token 响应".into()))?;
     Ok(token_from_response(resp))
 }
@@ -191,10 +194,13 @@ pub fn refresh_token(session: &mut Session) -> Result<(), AuthError> {
         ("grant_type", "refresh_token"),
         ("refresh_token", refresh.as_str()),
     ];
-    let resp: TokenResponse = ureq::post("https://gitee.com/oauth/token")
-        .send_form(&form)
+    let resp: TokenResponse = reqwest::blocking::Client::new()
+        .post("https://gitee.com/oauth/token")
+        .form(&form)
+        .send()
+        .and_then(reqwest::blocking::Response::error_for_status)
         .map_err(|_| AuthError::Message("刷新 token 失败".into()))?
-        .into_json()
+        .json()
         .map_err(|_| AuthError::Message("无法解析 token 响应".into()))?;
     session.token = token_from_response(resp);
     Ok(())
@@ -209,11 +215,13 @@ fn token_from_response(resp: TokenResponse) -> Token {
 }
 
 pub fn fetch_user(access_token: &str) -> Result<GiteeUser, AuthError> {
-    ureq::get("https://gitee.com/api/v5/user")
-        .query("access_token", access_token)
-        .call()
+    reqwest::blocking::Client::new()
+        .get("https://gitee.com/api/v5/user")
+        .query(&[("access_token", access_token)])
+        .send()
+        .and_then(reqwest::blocking::Response::error_for_status)
         .map_err(|_| AuthError::Message("获取用户信息失败".into()))?
-        .into_json()
+        .json()
         .map_err(|_| AuthError::Message("无法解析用户信息".into()))
 }
 
@@ -221,9 +229,12 @@ pub fn ensure_remote_repo(session: &Session) -> Result<(), AuthError> {
     let encoded_owner = urlencoding::encode(&session.login);
     let encoded_repo = urlencoding::encode(&session.repo);
     let get_url = format!("https://gitee.com/api/v5/repos/{encoded_owner}/{encoded_repo}");
-    let exists = ureq::get(&get_url)
-        .query("access_token", &session.token.access_token)
-        .call()
+    let client = reqwest::blocking::Client::new();
+    let exists = client
+        .get(&get_url)
+        .query(&[("access_token", &session.token.access_token)])
+        .send()
+        .and_then(reqwest::blocking::Response::error_for_status)
         .is_ok();
     if exists {
         return Ok(());
@@ -235,12 +246,15 @@ pub fn ensure_remote_repo(session: &Session) -> Result<(), AuthError> {
         name: String,
         private: bool,
     }
-    ureq::post("https://gitee.com/api/v5/user/repos")
-        .send_json(CreateRepo {
+    client
+        .post("https://gitee.com/api/v5/user/repos")
+        .json(&CreateRepo {
             access_token: session.token.access_token.clone(),
             name: session.repo.clone(),
             private,
         })
+        .send()
+        .and_then(reqwest::blocking::Response::error_for_status)
         .map_err(|_| AuthError::Message("创建 Gitee 仓库失败".into()))?;
     Ok(())
 }
