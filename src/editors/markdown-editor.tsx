@@ -13,6 +13,7 @@ import {
   tablePlugin,
   thematicBreakPlugin,
 } from '@mdxeditor/editor'
+import { cn } from '@/lib/utils'
 
 import '@mdxeditor/editor/style.css'
 
@@ -33,10 +34,10 @@ flowchart LR
 \`\`\`
 `
 
-export function MarkdownEditor() {
+export function MarkdownEditor({ dark }: { dark: boolean }) {
   return (
     <MDXEditor
-      className="min-h-full bg-card"
+      className={cn('min-h-full bg-background', dark && 'dark-theme')}
       markdown={demoMarkdown}
       plugins={[
         headingsPlugin(),

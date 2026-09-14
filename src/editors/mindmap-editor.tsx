@@ -14,10 +14,10 @@ const edges: Edge[] = [
   { id: 'root-git', source: 'root', target: 'git' },
 ]
 
-export function MindmapEditor() {
+export function MindmapEditor({ dark }: { dark: boolean }) {
   return (
     <div className="h-full min-h-[520px]">
-      <ReactFlow nodes={nodes} edges={edges} fitView>
+      <ReactFlow colorMode={dark ? 'dark' : 'light'} nodes={nodes} edges={edges} fitView>
         <Background />
         <Controls />
       </ReactFlow>
