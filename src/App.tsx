@@ -1,12 +1,10 @@
 import type { DocumentEntry, FolderEntry } from '@/domain/workspace'
-import { ChevronRight, FilePenLine, Folder, GitBranch, LogOut, Moon, Plus, RefreshCw, Search, Sun, Trash2 } from 'lucide-react'
-
+import { ChevronDown, FilePenLine, Folder, LogOut, Moon, Plus, RefreshCw, Sun, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { LoginScreen } from '@/auth/login-screen'
 import { useAuth } from '@/auth/use-auth'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable'
 import { flattenDocuments, isFolder } from '@/domain/workspace'
 import { EditorSurface } from '@/editors/editor-surface'
@@ -22,74 +20,59 @@ function TreeNode({ entry, onSelect, selectedPath }: { entry: FolderEntry | Docu
       </Button>
     )
   }
-
   return (
     <div>
       <div className="flex h-8 items-center gap-2 px-2 text-sm font-medium">
-        <ChevronRight className="size-3.5 text-muted-foreground" />
+        <ChevronDown className="size-3.5 text-muted-foreground" />
         <Folder className="size-4 text-muted-foreground" />
         <span className="truncate">{entry.name}</span>
       </div>
-      <div className="ml-4 border-l pl-1">
-        {entry.children.map(child => <TreeNode entry={child} key={child.path} onSelect={onSelect} selectedPath={selectedPath} />)}
-      </div>
+      <div className="ml-4 border-l pl-1">{entry.children.map(child => <TreeNode entry={child} key={child.path} onSelect={onSelect} selectedPath={selectedPath} />)}</div>
     </div>
   )
 }
 
-function kindLabel(kind: DocumentEntry['kind']) {
-  return { markdown: 'Markdown', canvas: '画布', mindmap: '脑图' }[kind]
-}
-
 function useDarkMode() {
   const [dark, setDark] = useState(() => localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && matchMedia('(prefers-color-scheme: dark)').matches))
-
   useEffect(() => {
     document.documentElement.classList.toggle('dark', dark)
     localStorage.setItem('theme', dark ? 'dark' : 'light')
   }, [dark])
-
   return [dark, setDark] as const
 }
 
 export function App() {
-  const { desktopAvailable, error, loading, login, logout, pending, snapshot: authSnapshot, sync } = useAuth()
-  const { snapshot: workspaceSnapshot, selectDocument } = useWorkspace()
+  const auth = useAuth()
+  const workspace = useWorkspace(Boolean(auth.snapshot?.session))
   const [dark, setDark] = useDarkMode()
-  const documents = useMemo(() => flattenDocuments(workspaceSnapshot?.roots ?? []), [workspaceSnapshot])
-  const selected = documents.find(document => document.path === workspaceSnapshot?.selectedPath) ?? documents[0]
-
-  if (loading)
+  const documents = useMemo(() => flattenDocuments(workspace.snapshot?.roots ?? []), [workspace.snapshot?.roots])
+  const selected = documents.find(document => document.path === workspace.snapshot?.selectedPath)
+  if (auth.loading)
     return <div className="grid min-h-screen place-items-center text-sm text-muted-foreground">正在检查登录状态…</div>
+  if (!auth.snapshot?.session)
+    return <LoginScreen desktopAvailable={auth.desktopAvailable} error={auth.error} onLogin={() => void auth.login()} pending={auth.pending} />
+  if (!workspace.snapshot)
+    return <div className="grid min-h-screen place-items-center text-sm text-muted-foreground">正在读取本地仓库…</div>
 
-  if (!authSnapshot?.session) {
-    return <LoginScreen desktopAvailable={desktopAvailable} error={error} onLogin={() => void login()} pending={pending} />
+  const session = auth.snapshot.session
+  const syncLabel = auth.snapshot.syncStatus === 'syncing' ? '正在同步' : auth.snapshot.syncStatus === 'error' ? '同步失败' : auth.snapshot.syncStatus === 'synced' ? '已同步' : '本地已保存'
+  const runSync = async () => {
+    await workspace.flush()
+    if (await auth.sync())
+      await workspace.refresh()
   }
-
-  if (!workspaceSnapshot || !selected)
-    return <div className="grid min-h-screen place-items-center text-sm text-muted-foreground">正在打开笔记库…</div>
-
-  const session = authSnapshot.session
-  const syncLabel = authSnapshot.syncStatus === 'syncing'
-    ? '正在同步'
-    : authSnapshot.syncStatus === 'error'
-      ? '同步失败'
-      : authSnapshot.syncStatus === 'synced'
-        ? '已同步'
-        : '本地已保存'
-
   return (
     <div className="h-screen overflow-hidden bg-background text-foreground">
       <a className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:m-3 focus:rounded-md focus:bg-background focus:px-4 focus:py-2 focus:ring-2" href="#editor">跳到编辑器</a>
       <ResizablePanelGroup orientation="horizontal">
-        <ResizablePanel defaultSize={240} minSize={190}>
-          <aside className="flex h-full flex-col" aria-label="文件夹导航">
+        <ResizablePanel defaultSize={260} maxSize={420} minSize={190}>
+          <aside className="flex h-full flex-col" aria-label="内容目录">
             <div className="flex h-12 shrink-0 items-center justify-between border-b px-3">
-              <span className="text-sm font-medium">文件</span>
-              <Button aria-label="新建文件夹" size="icon" variant="ghost"><Plus /></Button>
+              <span className="truncate text-sm font-medium">{session.repo}</span>
+              <Button aria-label="新建" size="icon" variant="ghost"><Plus /></Button>
             </div>
             <nav className="min-h-0 flex-1 space-y-1 overflow-auto p-2">
-              {workspaceSnapshot.roots.map(root => <TreeNode entry={root} key={root.path} onSelect={path => void selectDocument(path)} selectedPath={workspaceSnapshot.selectedPath} />)}
+              {workspace.snapshot.roots.length ? workspace.snapshot.roots.map(root => <TreeNode entry={root} key={root.path} onSelect={path => void workspace.selectDocument(path)} selectedPath={workspace.snapshot?.selectedPath ?? null} />) : <p className="px-2 py-6 text-center text-sm text-muted-foreground">仓库里还没有文档</p>}
               <Button className="mt-2 w-full justify-start px-2 font-normal text-muted-foreground" variant="ghost">
                 <Trash2 />
                 回收站
@@ -102,59 +85,33 @@ export function App() {
               </Avatar>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">{session.name || session.login}</p>
-                <p className="flex items-center gap-1.5 truncate text-xs text-muted-foreground" aria-live="polite" title={error ?? authSnapshot.errorMessage ?? syncLabel}>
-                  <span className={cn('size-1.5 rounded-full', authSnapshot.syncStatus === 'error' ? 'bg-destructive' : authSnapshot.syncStatus === 'syncing' ? 'animate-pulse bg-muted-foreground' : 'bg-emerald-500')} />
+                <p className="flex items-center gap-1.5 truncate text-xs text-muted-foreground" aria-live="polite" title={auth.error ?? auth.snapshot.errorMessage ?? syncLabel}>
+                  <span className={cn('size-1.5 rounded-full', auth.snapshot.syncStatus === 'error' ? 'bg-destructive' : auth.snapshot.syncStatus === 'syncing' ? 'animate-pulse bg-muted-foreground' : 'bg-emerald-500')} />
                   {syncLabel}
                 </p>
               </div>
-              <Button aria-label="立即同步" disabled={pending} onClick={() => void sync()} size="icon" variant="ghost"><RefreshCw className={cn(authSnapshot.syncStatus === 'syncing' && 'animate-spin')} /></Button>
-              <Button aria-label={dark ? '切换到浅色模式' : '切换到深色模式'} onClick={() => setDark(value => !value)} size="icon" variant="ghost">
-                {dark ? <Sun /> : <Moon />}
-              </Button>
-              <Button aria-label="退出登录" disabled={pending} onClick={() => void logout()} size="icon" variant="ghost"><LogOut /></Button>
+              <Button aria-label="立即同步" disabled={auth.pending} onClick={() => void runSync()} size="icon" variant="ghost"><RefreshCw className={cn(auth.snapshot.syncStatus === 'syncing' && 'animate-spin')} /></Button>
+              <Button aria-label={dark ? '切换到浅色模式' : '切换到深色模式'} onClick={() => setDark(value => !value)} size="icon" variant="ghost">{dark ? <Sun /> : <Moon />}</Button>
+              <Button aria-label="退出登录" disabled={auth.pending} onClick={() => void auth.logout()} size="icon" variant="ghost"><LogOut /></Button>
             </div>
           </aside>
         </ResizablePanel>
-
         <ResizableHandle withHandle />
-
-        <ResizablePanel defaultSize={280} minSize={220}>
-          <section className="flex h-full flex-col bg-muted/30" aria-label="文档列表">
-            <div className="flex h-12 shrink-0 items-center gap-2 border-b p-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input aria-label="搜索当前文件夹" className="pl-8" placeholder="搜索文档" />
-              </div>
-              <Button aria-label="新建文档" size="icon"><Plus /></Button>
-            </div>
-            <div className="min-h-0 flex-1 space-y-1 overflow-auto p-2">
-              {documents.map(document => (
-                <Button className="h-auto w-full justify-start px-3 py-2 text-left" key={document.path} onClick={() => void selectDocument(document.path)} variant={selected.path === document.path ? 'secondary' : 'ghost'}>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium">{document.name}</span>
-                    <span className="mt-0.5 block text-xs font-normal text-muted-foreground">{kindLabel(document.kind)}</span>
-                  </span>
-                </Button>
-              ))}
-            </div>
-          </section>
-        </ResizablePanel>
-
-        <ResizableHandle withHandle />
-
-        <ResizablePanel minSize={360}>
+        <ResizablePanel minSize={420}>
           <main className="flex h-full min-w-0 flex-col bg-background" id="editor">
-            <div className="flex h-12 shrink-0 items-center justify-between border-b px-4">
-              <div className="min-w-0">
-                <h1 className="truncate text-sm font-semibold">{selected.name}</h1>
-                <p className="truncate text-xs text-muted-foreground">{selected.path}</p>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <GitBranch className="size-4" />
-                <span>本地已保存</span>
-              </div>
-            </div>
-            <div className="min-h-0 flex-1 overflow-auto"><EditorSurface dark={dark} kind={selected.kind} /></div>
+            {selected
+              ? (
+                  <>
+                    <div className="flex h-12 shrink-0 items-center border-b px-5">
+                      <div className="min-w-0">
+                        <h1 className="truncate text-sm font-semibold">{selected.name}</h1>
+                        <p className="truncate text-xs text-muted-foreground">{selected.path}</p>
+                      </div>
+                    </div>
+                    <div className="min-h-0 flex-1 overflow-auto"><EditorSurface content={workspace.snapshot.selectedContent} dark={dark} key={selected.path} kind={selected.kind} onChange={workspace.updateDocument} /></div>
+                  </>
+                )
+              : <div className="grid h-full place-items-center text-sm text-muted-foreground">从左侧选择一个文档</div>}
           </main>
         </ResizablePanel>
       </ResizablePanelGroup>

@@ -18,6 +18,33 @@ pub struct CreateNoteResult {
 }
 use crate::workspace::remove_notebook_dir;
 
+fn workspace_root(app: &AppHandle) -> Result<std::path::PathBuf, String> {
+    let state = lock_state(app);
+    let root = state
+        .inner
+        .lock()
+        .unwrap()
+        .workspace_root
+        .clone()
+        .ok_or_else(|| "尚未打开工作区".to_string());
+    root
+}
+
+#[tauri::command]
+pub fn get_content_tree(app: AppHandle) -> Result<Vec<crate::content::ContentEntry>, String> {
+    crate::content::scan(&workspace_root(&app)?)
+}
+
+#[tauri::command]
+pub fn read_document(app: AppHandle, path: String) -> Result<String, String> {
+    crate::content::read(&workspace_root(&app)?, &path)
+}
+
+#[tauri::command]
+pub fn write_document(app: AppHandle, path: String, content: String) -> Result<(), String> {
+    crate::content::write(&workspace_root(&app)?, &path, &content)
+}
+
 fn snap(app: &AppHandle) -> Snapshot {
     let state = app.state::<AppState>();
     let inner = state.inner.lock().unwrap();

@@ -19,13 +19,12 @@ pub fn debug_workspace_root(app_data: &Path) -> PathBuf {
 }
 
 pub fn init_empty_workspace(root: &Path) -> Result<(), WorkspaceError> {
-    fs::create_dir_all(root).map_err(|e| WorkspaceError::Message(e.to_string()))?;
-    let notebooks = root.join("notebooks.json");
-    if !notebooks.exists() {
-        let ws = Workspace::new_empty();
-        let json = serialize_notebooks_json(&ws)
+    let system_dir = root.join(".unote");
+    fs::create_dir_all(&system_dir).map_err(|e| WorkspaceError::Message(e.to_string()))?;
+    let settings = system_dir.join("settings.json");
+    if !settings.exists() {
+        fs::write(&settings, "{\n  \"schemaVersion\": 1\n}\n")
             .map_err(|e| WorkspaceError::Message(e.to_string()))?;
-        fs::write(&notebooks, json).map_err(|e| WorkspaceError::Message(e.to_string()))?;
     }
     Ok(())
 }
@@ -229,8 +228,11 @@ mod tests {
     fn init_empty_has_no_preset_notebooks() {
         let dir = tempdir().unwrap();
         init_empty_workspace(dir.path()).unwrap();
-        let ws = load_workspace(dir.path()).unwrap();
-        assert!(ws.notebooks.is_empty());
+        assert_eq!(
+            fs::read_to_string(dir.path().join(".unote/settings.json")).unwrap(),
+            "{\n  \"schemaVersion\": 1\n}\n"
+        );
+        assert!(!dir.path().join("notebooks.json").exists());
         assert!(!dir.path().join("session.json").exists());
     }
 }

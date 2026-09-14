@@ -29,9 +29,9 @@ dotenvy = "0.15"
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "native-tls"] }
 urlencoding = "2"
 keyring = { version = "3.6.3", features = ["apple-native", "windows-native", "sync-secret-service"] }
+tempfile = "3"
 
 [dev-dependencies]
-tempfile = "3"
 
 [profile.release]
 codegen-units = 1

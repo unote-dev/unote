@@ -16,7 +16,8 @@ export interface FolderEntry {
 
 export interface WorkspaceSnapshot {
   libraryName: string
-  roots: FolderEntry[]
+  roots: Array<FolderEntry | DocumentEntry>
+  selectedContent: string
   selectedPath: string | null
   sync: 'idle' | 'saving' | 'syncing' | 'synced' | 'conflict' | 'error'
 }
@@ -25,8 +26,6 @@ export function isFolder(entry: FolderEntry | DocumentEntry): entry is FolderEnt
   return entry.kind === 'folder'
 }
 
-export function flattenDocuments(folders: FolderEntry[]): DocumentEntry[] {
-  return folders.flatMap(folder => folder.children.flatMap(entry => (
-    isFolder(entry) ? flattenDocuments([entry]) : [entry]
-  )))
+export function flattenDocuments(entries: Array<FolderEntry | DocumentEntry>): DocumentEntry[] {
+  return entries.flatMap(entry => isFolder(entry) ? flattenDocuments(entry.children) : [entry])
 }

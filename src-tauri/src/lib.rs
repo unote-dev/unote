@@ -1,6 +1,7 @@
 mod auth;
 mod codec;
 mod commands;
+mod content;
 mod domain;
 mod git;
 mod state;
@@ -37,6 +38,9 @@ pub fn run() {
             commands::update_note_cmd,
             commands::save_workspace_now,
             commands::full_sync,
+            commands::get_content_tree,
+            commands::read_document,
+            commands::write_document,
             commands::start_oauth,
             commands::logout,
             commands::open_workspace_folder,

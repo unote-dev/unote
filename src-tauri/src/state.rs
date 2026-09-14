@@ -151,7 +151,7 @@ pub fn open_debug_workspace(inner: &mut Inner) -> Result<(), String> {
     let root = debug_workspace_root(&inner.app_data_dir);
     init_empty_workspace(&root).map_err(|e| e.to_string())?;
     git::ensure_repo(&root).map_err(|e| e.to_string())?;
-    inner.data = load_workspace(&root).map_err(|e| e.to_string())?;
+    inner.data = load_workspace(&root).unwrap_or_else(|_| Workspace::new_empty());
     inner.last_sync_at = load_meta(&root);
     inner.workspace_root = Some(root);
     inner.debug_workspace = true;
@@ -264,7 +264,6 @@ pub fn full_sync_locked(inner: &mut Inner) -> Result<(), String> {
     inner.sync_status = SyncStatus::Syncing;
     inner.error_message = None;
     let result = (|| {
-        persist_disk(inner)?;
         git::commit_if_changed(&root, "unote: 同步笔记").map_err(|e| e.to_string())?;
         let Some(session) = inner.session.clone() else {
             inner.sync_status = SyncStatus::Synced;
@@ -286,12 +285,12 @@ pub fn full_sync_locked(inner: &mut Inner) -> Result<(), String> {
                     .or_else(|| git::preferred_remote_branch(&root))
                     .ok_or_else(|| "无法确定分支".to_string())?;
                 git::fast_forward(&root, &branch).map_err(|e| e.to_string())?;
-                inner.data = load_workspace(&root).map_err(|e| e.to_string())?;
+                inner.data = load_workspace(&root).unwrap_or_else(|_| Workspace::new_empty());
             }
             HistoryRelation::Same | HistoryRelation::Ahead | HistoryRelation::NoRemote => {}
         }
         git::push_current(&root, &session.token.access_token).map_err(|e| e.to_string())?;
-        inner.data = load_workspace(&root).map_err(|e| e.to_string())?;
+        inner.data = load_workspace(&root).unwrap_or_else(|_| Workspace::new_empty());
         inner.last_sync_at = Some(now_nanos());
         save_meta(&root, inner.last_sync_at);
         inner.sync_status = SyncStatus::Synced;
@@ -324,7 +323,7 @@ pub fn ensure_session_workspace(inner: &mut Inner) -> Result<(), String> {
     if !root.join(".git").exists() {
         match git::clone_repo(&session.git_https_url(), &root, &session.token.access_token) {
             Ok(()) => {
-                if !root.join("notebooks.json").exists() {
+                if !root.join(".unote/settings.json").exists() {
                     init_empty_workspace(&root).map_err(|e| e.to_string())?;
                 }
             }
@@ -351,9 +350,7 @@ pub fn ensure_session_workspace(inner: &mut Inner) -> Result<(), String> {
     } else if let Ok(HistoryRelation::Diverged) = git::analyze_history(&root) {
         inner.set_error("本地与远端已分叉，已停止自动同步。".into());
     }
-    inner.data = load_workspace(&root).map_err(|e| {
-        format!("本地仓库读取失败，原文件已保留：{e}")
-    })?;
+    inner.data = load_workspace(&root).unwrap_or_else(|_| Workspace::new_empty());
     inner.last_sync_at = load_meta(&root);
     if inner.sync_status != SyncStatus::Error {
         inner.sync_status = SyncStatus::Synced;

@@ -6,12 +6,12 @@ const MarkdownEditor = lazy(() => import('@/editors/markdown-editor').then(modul
 const CanvasEditor = lazy(() => import('@/editors/canvas-editor').then(module => ({ default: module.CanvasEditor })))
 const MindmapEditor = lazy(() => import('@/editors/mindmap-editor').then(module => ({ default: module.MindmapEditor })))
 
-export function EditorSurface({ dark, kind }: { dark: boolean, kind: DocumentKind }) {
+export function EditorSurface({ content, dark, kind, onChange }: { content: string, dark: boolean, kind: DocumentKind, onChange: (content: string) => void }) {
   const editor = kind === 'canvas'
-    ? <CanvasEditor dark={dark} />
+    ? <CanvasEditor content={content} dark={dark} onChange={onChange} />
     : kind === 'mindmap'
-      ? <MindmapEditor dark={dark} />
-      : <MarkdownEditor dark={dark} />
+      ? <MindmapEditor content={content} dark={dark} />
+      : <MarkdownEditor dark={dark} markdown={content} onChange={onChange} />
 
   return <Suspense fallback={<div className="grid h-full place-items-center text-sm text-muted-foreground">正在加载编辑器…</div>}>{editor}</Suspense>
 }
