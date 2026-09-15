@@ -15,7 +15,7 @@ import { useUpdater } from '@/hooks/use-updater'
 import { cn } from '@/lib/utils'
 import { useWorkspace } from '@/workspace/use-workspace'
 
-function TreeNode({ entry, onFolderSelect, onSelect, selectedDirectory, selectedPath }: { entry: FolderEntry | DocumentEntry, onFolderSelect: (path: string) => void, onSelect: (path: string) => void, selectedDirectory: string, selectedPath: string | null }) {
+function TreeNode({ entry, expandedPaths, onFolderSelect, onToggle, onSelect, selectedDirectory, selectedPath }: { entry: FolderEntry | DocumentEntry, expandedPaths: Set<string>, onFolderSelect: (path: string) => void, onToggle: (path: string) => void, onSelect: (path: string) => void, selectedDirectory: string, selectedPath: string | null }) {
   if (!isFolder(entry)) {
     const DocumentIcon = entry.kind === 'canvas' ? Boxes : entry.kind === 'mindmap' ? Network : FileText
     return (
@@ -25,14 +25,15 @@ function TreeNode({ entry, onFolderSelect, onSelect, selectedDirectory, selected
       </Button>
     )
   }
+  const expanded = expandedPaths.has(entry.path)
   return (
     <div>
-      <Button className="h-8 w-full justify-start px-2 font-medium" onClick={() => onFolderSelect(entry.path)} variant={selectedDirectory === entry.path ? 'secondary' : 'ghost'}>
-        <ChevronDown className="size-3.5 text-muted-foreground" />
+      <Button className="h-8 w-full justify-start px-2 font-medium" onClick={() => { onToggle(entry.path); onFolderSelect(entry.path) }} variant={selectedDirectory === entry.path ? 'secondary' : 'ghost'}>
+        <ChevronDown className={cn('size-3.5 text-muted-foreground transition-transform', !expanded && '-rotate-90')} />
         <Folder className="size-4 text-muted-foreground" />
         <span className="truncate">{entry.name}</span>
       </Button>
-      <div className="ml-4 border-l pl-1">{entry.children.map(child => <TreeNode entry={child} key={child.path} onFolderSelect={onFolderSelect} onSelect={onSelect} selectedDirectory={selectedDirectory} selectedPath={selectedPath} />)}</div>
+      {expanded && <div className="ml-4 border-l pl-1">{entry.children.map(child => <TreeNode entry={child} expandedPaths={expandedPaths} key={child.path} onFolderSelect={onFolderSelect} onSelect={onSelect} onToggle={onToggle} selectedDirectory={selectedDirectory} selectedPath={selectedPath} />)}</div>}
     </div>
   )
 }
@@ -57,6 +58,13 @@ export function App() {
   const [createError, setCreateError] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
   const [selectedDirectory, setSelectedDirectory] = useState('')
+  const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set())
+  const toggleExpand = (path: string) => setExpandedPaths((prev) => {
+    const next = new Set(prev)
+    if (next.has(path)) next.delete(path)
+    else next.add(path)
+    return next
+  })
   const documents = useMemo(() => flattenDocuments(workspace.snapshot?.roots ?? []), [workspace.snapshot?.roots])
   const selected = documents.find(document => document.path === workspace.snapshot?.selectedPath)
   if (auth.loading)
@@ -96,7 +104,6 @@ export function App() {
     }
   }
   const selectDocument = (path: string) => {
-    setSelectedDirectory(path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : '')
     void workspace.selectDocument(path)
   }
   const handleCreateSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -145,7 +152,7 @@ export function App() {
               </Button>
               <div className="mt-2 space-y-1 border-t pt-2">
                 {workspace.snapshot.roots.length
-                  ? workspace.snapshot.roots.map(root => <TreeNode entry={root} key={root.path} onFolderSelect={setSelectedDirectory} onSelect={selectDocument} selectedDirectory={selectedDirectory} selectedPath={workspace.snapshot?.selectedPath ?? null} />)
+                  ? workspace.snapshot.roots.map(root => <TreeNode entry={root} expandedPaths={expandedPaths} key={root.path} onFolderSelect={setSelectedDirectory} onSelect={selectDocument} onToggle={toggleExpand} selectedDirectory={selectedDirectory} selectedPath={workspace.snapshot?.selectedPath ?? null} />)
                   : <p className="px-2 py-6 text-center text-sm text-muted-foreground">仓库里还没有文档</p>}
               </div>
             </nav>
