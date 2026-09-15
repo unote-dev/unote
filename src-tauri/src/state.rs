@@ -112,12 +112,12 @@ impl Inner {
         self.error_message = Some(message);
     }
 
-    pub fn clear_error(&mut self) {
-        if self.sync_status == SyncStatus::Error {
-            self.sync_status = SyncStatus::Saved;
-        }
-        self.error_message = None;
-    }
+    // pub fn clear_error(&mut self) {
+    //     if self.sync_status == SyncStatus::Error {
+    //         self.sync_status = SyncStatus::Saved;
+    //     }
+    //     self.error_message = None;
+    // }
 }
 
 pub struct AppState {

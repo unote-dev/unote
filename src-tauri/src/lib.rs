@@ -1,5 +1,6 @@
 mod auth;
 mod codec;
+mod constants;
 mod commands;
 mod content;
 mod domain;
@@ -15,6 +16,8 @@ use crate::state::{start_periodic_sync, AppState};
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .setup(|app| {
             let app_data = app
                 .path()
@@ -39,12 +42,14 @@ pub fn run() {
             commands::save_workspace_now,
             commands::full_sync,
             commands::get_content_tree,
+            commands::create_content,
             commands::read_document,
             commands::write_document,
             commands::start_oauth,
             commands::logout,
             commands::open_workspace_folder,
             commands::save_image_cmd,
+            commands::read_asset_data_url,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

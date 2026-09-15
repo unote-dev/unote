@@ -1,17 +1,21 @@
-import type { DocumentEntry, FolderEntry } from '@/domain/workspace'
+import type { FormEvent } from 'react'
+import type { CreateKind, DocumentEntry, FolderEntry } from '@/domain/workspace'
 import { Boxes, ChevronDown, Files, FileText, Folder, LogOut, Moon, Network, Plus, RefreshCw, Sun, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { LoginScreen } from '@/auth/login-screen'
 import { useAuth } from '@/auth/use-auth'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable'
+import { UpdateDialog } from '@/components/update-dialog'
 import { flattenDocuments, isFolder } from '@/domain/workspace'
 import { EditorSurface } from '@/editors/editor-surface'
+import { useUpdater } from '@/hooks/use-updater'
 import { cn } from '@/lib/utils'
 import { useWorkspace } from '@/workspace/use-workspace'
 
-function TreeNode({ entry, onSelect, selectedPath }: { entry: FolderEntry | DocumentEntry, onSelect: (path: string) => void, selectedPath: string | null }) {
+function TreeNode({ entry, onFolderSelect, onSelect, selectedDirectory, selectedPath }: { entry: FolderEntry | DocumentEntry, onFolderSelect: (path: string) => void, onSelect: (path: string) => void, selectedDirectory: string, selectedPath: string | null }) {
   if (!isFolder(entry)) {
     const DocumentIcon = entry.kind === 'canvas' ? Boxes : entry.kind === 'mindmap' ? Network : FileText
     return (
@@ -23,12 +27,12 @@ function TreeNode({ entry, onSelect, selectedPath }: { entry: FolderEntry | Docu
   }
   return (
     <div>
-      <div className="flex h-8 items-center gap-2 px-2 text-sm font-medium">
+      <Button className="h-8 w-full justify-start px-2 font-medium" onClick={() => onFolderSelect(entry.path)} variant={selectedDirectory === entry.path ? 'secondary' : 'ghost'}>
         <ChevronDown className="size-3.5 text-muted-foreground" />
         <Folder className="size-4 text-muted-foreground" />
         <span className="truncate">{entry.name}</span>
-      </div>
-      <div className="ml-4 border-l pl-1">{entry.children.map(child => <TreeNode entry={child} key={child.path} onSelect={onSelect} selectedPath={selectedPath} />)}</div>
+      </Button>
+      <div className="ml-4 border-l pl-1">{entry.children.map(child => <TreeNode entry={child} key={child.path} onFolderSelect={onFolderSelect} onSelect={onSelect} selectedDirectory={selectedDirectory} selectedPath={selectedPath} />)}</div>
     </div>
   )
 }
@@ -44,8 +48,15 @@ function useDarkMode() {
 
 export function App() {
   const auth = useAuth()
+  const updater = useUpdater()
   const workspace = useWorkspace(Boolean(auth.snapshot?.session))
   const [dark, setDark] = useDarkMode()
+  const [createKind, setCreateKind] = useState<CreateKind | null>(null)
+  const [createMenuOpen, setCreateMenuOpen] = useState(false)
+  const [createName, setCreateName] = useState('')
+  const [createError, setCreateError] = useState<string | null>(null)
+  const [creating, setCreating] = useState(false)
+  const [selectedDirectory, setSelectedDirectory] = useState('')
   const documents = useMemo(() => flattenDocuments(workspace.snapshot?.roots ?? []), [workspace.snapshot?.roots])
   const selected = documents.find(document => document.path === workspace.snapshot?.selectedPath)
   if (auth.loading)
@@ -62,19 +73,69 @@ export function App() {
     if (await auth.sync())
       await workspace.refresh()
   }
+  const beginCreate = (kind: CreateKind) => {
+    setCreateMenuOpen(false)
+    setCreateKind(kind)
+    setCreateName('')
+    setCreateError(null)
+  }
+  const submitCreate = async () => {
+    if (!createKind)
+      return
+    setCreating(true)
+    setCreateError(null)
+    try {
+      await workspace.createContent(selectedDirectory, createName, createKind)
+      setCreateKind(null)
+    }
+    catch (cause) {
+      setCreateError(cause instanceof Error ? cause.message : String(cause))
+    }
+    finally {
+      setCreating(false)
+    }
+  }
+  const selectDocument = (path: string) => {
+    setSelectedDirectory(path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : '')
+    void workspace.selectDocument(path)
+  }
+  const handleCreateSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    void submitCreate()
+  }
   return (
     <div className="h-screen overflow-hidden bg-background text-foreground">
       <a className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:m-3 focus:rounded-md focus:bg-background focus:px-4 focus:py-2 focus:ring-2" href="#editor">跳到编辑器</a>
       <ResizablePanelGroup orientation="horizontal">
         <ResizablePanel defaultSize={260} maxSize={420} minSize={190}>
           <aside className="flex h-full flex-col" aria-label="内容目录">
-            <div className="flex h-12 shrink-0 items-center justify-between border-b px-3">
-              <span className="truncate text-sm font-medium">{session.repo}</span>
-              <Button aria-label="新建" size="icon" variant="ghost"><Plus /></Button>
+            <div className="relative flex h-12 shrink-0 items-center justify-between border-b px-3">
+              <span className="truncate text-sm font-medium">UNote <span className="text-xs font-normal text-muted-foreground">· {session.host === 'gitee' ? 'Gitee' : session.host === 'github' ? 'GitHub' : session.host === 'gitlab' ? 'GitLab' : session.host}</span></span>
+              <Button aria-expanded={createMenuOpen} aria-haspopup="menu" aria-label="新建" onClick={() => setCreateMenuOpen(open => !open)} size="icon" variant="ghost"><Plus /></Button>
+              {createMenuOpen && (
+                <div className="absolute right-2 top-10 z-30 w-48 rounded-md border bg-popover p-1 text-popover-foreground shadow-md" role="menu">
+                  <Button className="w-full justify-start font-normal" onClick={() => beginCreate('markdown')} role="menuitem" variant="ghost">
+                    <FileText />
+                    笔记
+                  </Button>
+                  <Button className="w-full justify-start font-normal" onClick={() => beginCreate('canvas')} role="menuitem" variant="ghost">
+                    <Boxes />
+                    画布
+                  </Button>
+                  <Button className="w-full justify-start font-normal" onClick={() => beginCreate('mindmap')} role="menuitem" variant="ghost">
+                    <Network />
+                    脑图
+                  </Button>
+                  <div className="-mx-1 my-1 h-px bg-border" role="separator" />
+                  <Button className="w-full justify-start font-normal" onClick={() => beginCreate('folder')} role="menuitem" variant="ghost">
+                    <Folder />
+                    文件夹
+                  </Button>
+                </div>
+              )}
             </div>
             <nav className="min-h-0 flex-1 space-y-1 overflow-auto p-2">
-              {workspace.snapshot.roots.length ? workspace.snapshot.roots.map(root => <TreeNode entry={root} key={root.path} onSelect={path => void workspace.selectDocument(path)} selectedPath={workspace.snapshot?.selectedPath ?? null} />) : <p className="px-2 py-6 text-center text-sm text-muted-foreground">仓库里还没有文档</p>}
-              <Button className="mt-2 w-full justify-start px-2 font-normal" variant="secondary">
+              <Button className="w-full justify-start px-2 font-normal" onClick={() => setSelectedDirectory('')} variant={selectedDirectory === '' ? 'secondary' : 'ghost'}>
                 <Files />
                 全部
               </Button>
@@ -82,6 +143,11 @@ export function App() {
                 <Trash2 />
                 回收站
               </Button>
+              <div className="mt-2 space-y-1 border-t pt-2">
+                {workspace.snapshot.roots.length
+                  ? workspace.snapshot.roots.map(root => <TreeNode entry={root} key={root.path} onFolderSelect={setSelectedDirectory} onSelect={selectDocument} selectedDirectory={selectedDirectory} selectedPath={workspace.snapshot?.selectedPath ?? null} />)
+                  : <p className="px-2 py-6 text-center text-sm text-muted-foreground">仓库里还没有文档</p>}
+              </div>
             </nav>
             <div className="flex h-14 shrink-0 items-center gap-2 border-t px-3">
               <Avatar>
@@ -113,13 +179,47 @@ export function App() {
                         <p className="truncate text-xs text-muted-foreground">{selected.path}</p>
                       </div>
                     </div>
-                    <div className="min-h-0 flex-1 overflow-auto"><EditorSurface content={workspace.snapshot.selectedContent} dark={dark} key={selected.path} kind={selected.kind} onChange={workspace.updateDocument} /></div>
+                    <div className="min-h-0 flex-1 overflow-auto"><EditorSurface content={workspace.snapshot.selectedContent} dark={dark} documentPath={selected.path} key={selected.path} kind={selected.kind} onChange={workspace.updateDocument} /></div>
                   </>
                 )
               : <div className="grid h-full place-items-center text-sm text-muted-foreground">从左侧选择一个文档</div>}
           </main>
         </ResizablePanel>
       </ResizablePanelGroup>
+      {createKind && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4" role="presentation" onMouseDown={() => !creating && setCreateKind(null)}>
+          <form className="w-full max-w-sm space-y-4 rounded-lg border bg-background p-6 shadow-lg" onMouseDown={event => event.stopPropagation()} onSubmit={handleCreateSubmit}>
+            <div>
+              <h2 className="text-lg font-semibold">
+                新建
+                {createKind === 'folder' ? '文件夹' : createKind === 'markdown' ? '笔记' : createKind === 'canvas' ? '画布' : '脑图'}
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                位置：
+                {selectedDirectory || '仓库根目录'}
+              </p>
+            </div>
+            <Input autoFocus disabled={creating} onChange={event => setCreateName(event.target.value)} placeholder="输入名称" value={createName} />
+            {createError && <p className="text-sm text-destructive" role="alert">{createError}</p>}
+            <div className="flex justify-end gap-2">
+              <Button disabled={creating} onClick={() => setCreateKind(null)} type="button" variant="outline">取消</Button>
+              <Button disabled={creating || !createName} type="submit">{creating ? '正在创建…' : '创建'}</Button>
+            </div>
+          </form>
+        </div>
+      )}
+      {updater.update.available && (
+        <UpdateDialog
+          body={updater.update.body}
+          downloaded={updater.update.downloaded}
+          downloading={updater.update.downloading}
+          error={updater.update.error}
+          onDismiss={updater.dismiss}
+          onInstall={updater.installUpdate}
+          total={updater.update.total}
+          version={updater.update.version}
+        />
+      )}
     </div>
   )
 }

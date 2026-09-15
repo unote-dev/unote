@@ -1,4 +1,5 @@
 export type DocumentKind = 'markdown' | 'canvas' | 'mindmap'
+export type CreateKind = DocumentKind | 'folder'
 
 export interface DocumentEntry {
   kind: DocumentKind

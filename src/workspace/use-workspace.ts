@@ -1,4 +1,4 @@
-import type { WorkspaceSnapshot } from '@/domain/workspace'
+import type { CreateKind, WorkspaceSnapshot } from '@/domain/workspace'
 
 import type { WorkspacePort } from '@/workspace/port'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -62,5 +62,10 @@ export function useWorkspace(enabled: boolean, port?: WorkspacePort) {
     await writePromiseRef.current
   }, [queueWrite])
 
-  return { flush, refresh, selectDocument, snapshot, updateDocument }
+  const createContent = useCallback(async (parent: string, name: string, kind: CreateKind) => {
+    await flush()
+    setSnapshot(await activePort.createContent(parent, name, kind))
+  }, [activePort, flush])
+
+  return { createContent, flush, refresh, selectDocument, snapshot, updateDocument }
 }

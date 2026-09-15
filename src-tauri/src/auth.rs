@@ -89,14 +89,14 @@ pub(crate) struct GiteeUser {
 }
 
 pub fn oauth_credentials() -> Result<(String, String), AuthError> {
-    let id = std::env::var("UNOTE_GITEE_CLIENT_ID").unwrap_or_default();
-    let secret = std::env::var("UNOTE_GITEE_CLIENT_SECRET").unwrap_or_default();
+    let id = crate::constants::GITEE_CLIENT_ID;
+    let secret = crate::constants::GITEE_CLIENT_SECRET;
     if id.is_empty() || secret.is_empty() {
         return Err(AuthError::Message(
-            "未配置 UNOTE_GITEE_CLIENT_ID / UNOTE_GITEE_CLIENT_SECRET".into(),
+            "未配置 Gitee OAuth 凭据".into(),
         ));
     }
-    Ok((id, secret))
+    Ok((id.to_string(), secret.to_string()))
 }
 
 pub fn random_state() -> String {

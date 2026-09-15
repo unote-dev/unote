@@ -1,3 +1,6 @@
+use base64::Engine;
+use std::io::Write;
+use std::path::{Component, Path};
 use tauri::{AppHandle, Manager, State};
 use tauri_plugin_opener::OpenerExt;
 
@@ -6,7 +9,7 @@ use crate::domain::{now_nanos, Workspace};
 use serde::Serialize;
 
 use crate::state::{
-    bootstrap_inner, create_notebook, create_note, emit_snapshot, ensure_session_workspace,
+    bootstrap_inner, create_note, create_notebook, emit_snapshot, ensure_session_workspace,
     full_sync_locked, open_debug_workspace, persist_structural, schedule_save, AppState, Snapshot,
 };
 
@@ -43,6 +46,16 @@ pub fn read_document(app: AppHandle, path: String) -> Result<String, String> {
 #[tauri::command]
 pub fn write_document(app: AppHandle, path: String, content: String) -> Result<(), String> {
     crate::content::write(&workspace_root(&app)?, &path, &content)
+}
+
+#[tauri::command]
+pub fn create_content(
+    app: AppHandle,
+    parent: String,
+    name: String,
+    kind: crate::content::CreateKind,
+) -> Result<String, String> {
+    crate::content::create(&workspace_root(&app)?, &parent, &name, kind)
 }
 
 fn snap(app: &AppHandle) -> Snapshot {
@@ -92,7 +105,10 @@ pub fn rename_notebook_cmd(app: AppHandle, id: String, name: String) -> Result<S
     {
         let state = lock_state(&app);
         let mut inner = state.inner.lock().unwrap();
-        inner.data.rename_notebook(&id, name).map_err(|e| e.to_string())?;
+        inner
+            .data
+            .rename_notebook(&id, name)
+            .map_err(|e| e.to_string())?;
     }
     persist_structural(&app)
 }
@@ -112,7 +128,10 @@ pub fn restore_notebook_cmd(app: AppHandle, id: String) -> Result<Snapshot, Stri
     {
         let state = lock_state(&app);
         let mut inner = state.inner.lock().unwrap();
-        inner.data.restore_notebook(&id).map_err(|e| e.to_string())?;
+        inner
+            .data
+            .restore_notebook(&id)
+            .map_err(|e| e.to_string())?;
     }
     persist_structural(&app)
 }
@@ -136,7 +155,10 @@ pub fn permanently_delete_notebook_cmd(app: AppHandle, id: String) -> Result<Sna
 }
 
 #[tauri::command]
-pub fn create_note_cmd(app: AppHandle, notebook_id: Option<String>) -> Result<CreateNoteResult, String> {
+pub fn create_note_cmd(
+    app: AppHandle,
+    notebook_id: Option<String>,
+) -> Result<CreateNoteResult, String> {
     let note_id = {
         let state = lock_state(&app);
         let mut inner = state.inner.lock().unwrap();
@@ -239,11 +261,7 @@ pub fn open_workspace_folder(app: AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn save_image_cmd(
-    app: AppHandle,
-    data: String,
-    filename: String,
-) -> Result<String, String> {
+pub fn save_image_cmd(app: AppHandle, data: String, filename: String) -> Result<String, String> {
     let state = lock_state(&app);
     let inner = state.inner.lock().unwrap();
     let root = inner
@@ -253,7 +271,20 @@ pub fn save_image_cmd(
     drop(inner);
 
     let assets_dir = root.join(".assets");
+    if std::fs::symlink_metadata(&assets_dir)
+        .map(|metadata| metadata.file_type().is_symlink())
+        .unwrap_or(false)
+    {
+        return Err("资源目录不能是符号链接".into());
+    }
     std::fs::create_dir_all(&assets_dir).map_err(|e| e.to_string())?;
+    let canonical_root = root.canonicalize().map_err(|error| error.to_string())?;
+    let canonical_assets = assets_dir
+        .canonicalize()
+        .map_err(|error| error.to_string())?;
+    if !canonical_assets.starts_with(canonical_root) {
+        return Err("资源目录超出仓库".into());
+    }
 
     // Strip data URL prefix if present (e.g. "data:image/png;base64,")
     let raw = if data.contains(',') {
@@ -262,19 +293,98 @@ pub fn save_image_cmd(
         &data
     };
 
-    use base64::Engine;
     let bytes = base64::engine::general_purpose::STANDARD
         .decode(raw)
         .map_err(|e| format!("解码失败: {e}"))?;
 
-    // Generate unique filename with timestamp
-    let ext = filename.split('.').last().unwrap_or("png");
-    let ts = crate::domain::now_nanos();
-    let save_name = format!("img-{ts}.{ext}");
-    let save_path = assets_dir.join(&save_name);
+    let requested_ext = Path::new(&filename)
+        .extension()
+        .and_then(|value| value.to_str())
+        .unwrap_or("png")
+        .to_ascii_lowercase();
+    let ext = match requested_ext.as_str() {
+        "png" | "jpg" | "jpeg" | "gif" | "webp" => requested_ext,
+        _ => "png".into(),
+    };
+    let requested_stem = Path::new(&filename)
+        .file_stem()
+        .and_then(|value| value.to_str())
+        .unwrap_or("image");
+    let stem: String = requested_stem
+        .chars()
+        .map(|character| {
+            if character.is_control() || "<>:\"/\\|?*".contains(character) {
+                '-'
+            } else {
+                character
+            }
+        })
+        .collect();
+    let stem = stem.trim().trim_matches('.');
+    let stem = if stem.is_empty() { "image" } else { stem };
 
-    std::fs::write(&save_path, &bytes).map_err(|e| e.to_string())?;
+    for number in 1.. {
+        let save_name = if number == 1 {
+            format!("{stem}.{ext}")
+        } else {
+            format!("{stem} ({number}).{ext}")
+        };
+        let save_path = canonical_assets.join(&save_name);
+        let mut temporary = tempfile::NamedTempFile::new_in(&canonical_assets)
+            .map_err(|error| error.to_string())?;
+        temporary
+            .write_all(&bytes)
+            .map_err(|error| error.to_string())?;
+        temporary
+            .as_file()
+            .sync_all()
+            .map_err(|error| error.to_string())?;
+        match temporary.persist_noclobber(&save_path) {
+            Ok(_) => return Ok(format!(".assets/{save_name}")),
+            Err(error) if error.error.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(error) => return Err(error.error.to_string()),
+        }
+    }
+    unreachable!()
+}
 
-    // Return absolute path for convertFileSrc
-    Ok(save_path.to_string_lossy().into_owned())
+#[tauri::command]
+pub fn read_asset_data_url(app: AppHandle, path: String) -> Result<String, String> {
+    let root = workspace_root(&app)?;
+    let relative = Path::new(&path);
+    let mut components = relative.components();
+    if components.next() != Some(Component::Normal(std::ffi::OsStr::new(".assets")))
+        || components.clone().count() != 1
+        || !matches!(components.next(), Some(Component::Normal(_)))
+    {
+        return Err("无效的资源路径".into());
+    }
+    let assets = root
+        .join(".assets")
+        .canonicalize()
+        .map_err(|error| error.to_string())?;
+    let resolved = root
+        .join(relative)
+        .canonicalize()
+        .map_err(|error| error.to_string())?;
+    if !resolved.starts_with(assets) || !resolved.is_file() {
+        return Err("资源不存在".into());
+    }
+    let mime = match resolved
+        .extension()
+        .and_then(|value| value.to_str())
+        .unwrap_or_default()
+        .to_ascii_lowercase()
+        .as_str()
+    {
+        "jpg" | "jpeg" => "image/jpeg",
+        "gif" => "image/gif",
+        "webp" => "image/webp",
+        _ => "image/png",
+    };
+    let bytes = std::fs::read(resolved).map_err(|error| error.to_string())?;
+    Ok(format!(
+        "data:{mime};base64,{}",
+        base64::engine::general_purpose::STANDARD.encode(bytes)
+    ))
 }

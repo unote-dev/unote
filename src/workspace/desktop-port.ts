@@ -1,4 +1,4 @@
-import type { DocumentEntry, FolderEntry, WorkspaceSnapshot } from '@/domain/workspace'
+import type { CreateKind, DocumentEntry, FolderEntry, WorkspaceSnapshot } from '@/domain/workspace'
 import type { WorkspacePort } from '@/workspace/port'
 import { invoke } from '@tauri-apps/api/core'
 import { flattenDocuments } from '@/domain/workspace'
@@ -25,6 +25,12 @@ function toEntry(entry: BackendEntry): FolderEntry | DocumentEntry {
 
 export class DesktopWorkspacePort implements WorkspacePort {
   #snapshot: WorkspaceSnapshot | null = null
+
+  async createContent(parent: string, name: string, kind: CreateKind) {
+    const path = await invoke<string>('create_content', { kind, name, parent })
+    await this.getSnapshot()
+    return kind === 'folder' ? structuredClone(this.#snapshot!) : this.selectDocument(path)
+  }
 
   async getSnapshot() {
     const roots = (await invoke<BackendEntry[]>('get_content_tree')).map(toEntry)

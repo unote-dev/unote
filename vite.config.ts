@@ -7,7 +7,7 @@ import { defineConfig } from 'vite'
 
 const host = process.env.TAURI_DEV_HOST
 
-export default defineConfig(() => ({
+export default defineConfig(({ command }) => ({
   plugins: [
     react(),
     tailwindcss(),
@@ -17,6 +17,7 @@ export default defineConfig(() => ({
       '@': resolve(dirname(fileURLToPath(import.meta.url)), 'src'),
     },
   },
+  devtools: command === 'serve',
   optimizeDeps: {
     holdUntilCrawlEnd: false,
   },
