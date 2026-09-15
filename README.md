@@ -26,7 +26,7 @@ UNote 是一个基于 Git 的个人文档管理工具。你的文档以真实目
 
 - **Markdown 编辑**：基于 MDXEditor 的富文本编辑体验
 - **画布文档**：基于 Excalidraw 的自由绘图与白板
-- **脑图**：基于 React Flow 的节点式思维导图
+- **脑图**：基于 Mind Elixir 的节点式思维导图
 - **文件夹管理**：支持任意嵌套目录结构
 - **Git 同步**：自动 commit + push，支持多设备同步
 - **资源管理**：图片等附件存储在 `.assets/` 目录，文档可直接引用
@@ -98,7 +98,7 @@ git push origin v0.1.0
 | UI | Tailwind CSS 4 + [shadcn/ui](https://ui.shadcn.com/) |
 | Markdown 编辑 | [MDXEditor](https://www.mdxeditor.dev/) |
 | 画布 | [Excalidraw](https://excalidraw.com/) |
-| 脑图 | [React Flow](https://reactflow.dev/) |
+| 脑图 | [Mind Elixir](https://docs.mind-elixir.com/) |
 | 后端 | Rust (git2, reqwest, keyring) |
 | 认证 | OAuth 2.0 + 系统 Keyring 存储 |
 | 同步 | Git (libgit2) |
