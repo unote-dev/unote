@@ -42,7 +42,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEQ3REZCOUNDRUI4QVENTQKUldSVTdZenJ6TG5mMTA2MzFqcWlEUE5zV3FTTThsSWY2QWRpMUNPMXRLeDZqYjRYRDNzTGR2YjQK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDQxNTA5MDYyMjRFNkJCOApSV1M0YTA0aUJna1ZCRllwbGxtZTAxdXkwdWRNbmk2ZkZXMm9UN1NSS0dINWJWemMxVzdXN3pvYQo=",
       "endpoints": [
         "https://github.com/unote-dev/unote/releases/latest/download/latest.json"
       ],
