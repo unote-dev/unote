@@ -61,6 +61,15 @@ jobs:
         working-directory: src-tauri
         run: cargo test --locked
 
+      - name: Verify updater signing secret
+        shell: pwsh
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY)) {
+            throw 'Missing repository secret: TAURI_SIGNING_PRIVATE_KEY'
+          }
+
       - name: Build and publish NSIS installer
         uses: tauri-apps/tauri-action@v0
         env:
