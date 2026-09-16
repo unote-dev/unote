@@ -17,6 +17,38 @@ class TestPointerEvent extends MouseEvent {
 }
 
 describe('mindmap editor', () => {
+  it('starts dragging a non-root node after moving past the drag threshold', async () => {
+    window.matchMedia = vi.fn().mockReturnValue({
+      addEventListener: vi.fn(),
+      matches: false,
+      removeEventListener: vi.fn(),
+    })
+    window.PointerEvent = TestPointerEvent as typeof PointerEvent
+    HTMLElement.prototype.setPointerCapture = vi.fn()
+    HTMLElement.prototype.releasePointerCapture = vi.fn()
+    document.elementFromPoint = vi.fn().mockReturnValue(null)
+    const { container } = render(
+      <MindmapEditor
+        content={JSON.stringify({
+          nodeData: {
+            children: [{ children: [], id: 'child', topic: '子节点' }],
+            id: 'root',
+            topic: '主题',
+          },
+        })}
+        dark={false}
+        onChange={vi.fn()}
+      />,
+    )
+
+    const child = await waitFor(() => container.querySelector('[data-nodeid="mechild"]') as HTMLElement)
+    const ghost = container.querySelector('.mind-elixir-ghost') as HTMLElement
+    fireEvent.pointerDown(child, { button: 0, clientX: 100, clientY: 100, pointerId: 1, pointerType: 'mouse' })
+    fireEvent.pointerMove(child, { button: 0, clientX: 120, clientY: 100, pointerId: 1, pointerType: 'mouse' })
+
+    expect(ghost.style.display).toBe('block')
+  })
+
   it('selects a node and adds a child with Tab in StrictMode', async () => {
     window.matchMedia = vi.fn().mockReturnValue({
       addEventListener: vi.fn(),

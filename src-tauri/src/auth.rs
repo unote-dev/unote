@@ -92,9 +92,7 @@ pub fn oauth_credentials() -> Result<(String, String), AuthError> {
     let id = crate::constants::GITEE_CLIENT_ID;
     let secret = crate::constants::GITEE_CLIENT_SECRET;
     if id.is_empty() || secret.is_empty() {
-        return Err(AuthError::Message(
-            "未配置 Gitee OAuth 凭据".into(),
-        ));
+        return Err(AuthError::Message("未配置 Gitee OAuth 凭据".into()));
     }
     Ok((id.to_string(), secret.to_string()))
 }
@@ -210,7 +208,12 @@ fn token_from_response(resp: TokenResponse) -> Token {
     Token {
         access_token: resp.access_token,
         refresh_token: resp.refresh_token,
-        expires_at: now_secs() + if resp.expires_in > 0 { resp.expires_in } else { 86400 },
+        expires_at: now_secs()
+            + if resp.expires_in > 0 {
+                resp.expires_in
+            } else {
+                86400
+            },
     }
 }
 
@@ -286,7 +289,8 @@ pub fn load_session() -> Result<Option<Session>, AuthError> {
 }
 
 pub fn save_session(session: &Session) -> Result<(), AuthError> {
-    let json = serde_json::to_string_pretty(session).map_err(|e| AuthError::Message(e.to_string()))?;
+    let json =
+        serde_json::to_string_pretty(session).map_err(|e| AuthError::Message(e.to_string()))?;
     let result = session_entry().and_then(|entry| {
         entry
             .set_password(&json)
@@ -365,5 +369,4 @@ mod tests {
         assert!(url.contains("127.0.0.1"));
         assert!(!url.contains("access_token"));
     }
-
 }

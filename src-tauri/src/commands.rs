@@ -5,23 +5,12 @@ use tauri::{AppHandle, Manager, State};
 use tauri_plugin_opener::OpenerExt;
 
 use crate::auth;
-use crate::domain::{now_nanos, Workspace};
-use serde::Serialize;
-
 use crate::state::{
-    bootstrap_inner, create_note, create_notebook, emit_snapshot, ensure_session_workspace,
-    full_sync_locked, open_debug_workspace, persist_structural, schedule_save, AppState, Snapshot,
+    bootstrap_inner, emit_snapshot, ensure_session_workspace, full_sync_locked,
+    open_debug_workspace, AppState, Snapshot,
 };
 
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CreateNoteResult {
-    pub snapshot: Snapshot,
-    pub note_id: String,
-}
-use crate::workspace::remove_notebook_dir;
-
-fn workspace_root(app: &AppHandle) -> Result<std::path::PathBuf, String> {
+pub(crate) fn workspace_root(app: &AppHandle) -> Result<std::path::PathBuf, String> {
     let state = lock_state(app);
     let root = state
         .inner
@@ -33,9 +22,62 @@ fn workspace_root(app: &AppHandle) -> Result<std::path::PathBuf, String> {
     root
 }
 
+fn snap(app: &AppHandle) -> Snapshot {
+    let state = app.state::<AppState>();
+    let inner = state.inner.lock().unwrap();
+    inner.snapshot()
+}
+
+fn lock_state(app: &AppHandle) -> tauri::State<'_, AppState> {
+    app.state::<AppState>()
+}
+
+#[tauri::command]
+pub async fn start_share(
+    app: AppHandle,
+    path: String,
+) -> Result<crate::sharing::ShareInfo, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let root = workspace_root(&app)?;
+        let app_data = app
+            .path()
+            .app_data_dir()
+            .map_err(|error| error.to_string())?;
+        let state = app.state::<crate::sharing::ShareState>();
+        crate::sharing::start(&state, &root, &app_data, &path)
+    })
+    .await
+    .map_err(|error| error.to_string())?
+}
+
+#[tauri::command]
+pub fn stop_share(
+    state: State<crate::sharing::ShareState>,
+    id: String,
+) -> Result<Vec<crate::sharing::ShareInfo>, String> {
+    state.stop_one(&id)?;
+    Ok(state.list())
+}
+
+#[tauri::command]
+pub fn list_shares(state: State<crate::sharing::ShareState>) -> Vec<crate::sharing::ShareInfo> {
+    state.list()
+}
+
+#[tauri::command]
+pub fn stop_all_shares(state: State<crate::sharing::ShareState>) -> Vec<crate::sharing::ShareInfo> {
+    state.stop_all();
+    state.list()
+}
+
 #[tauri::command]
 pub fn get_content_tree(app: AppHandle) -> Result<Vec<crate::content::ContentEntry>, String> {
     crate::content::scan(&workspace_root(&app)?)
+}
+
+#[tauri::command]
+pub fn get_trash_tree(app: AppHandle) -> Result<Vec<crate::content::ContentEntry>, String> {
+    crate::content::scan_trash(&workspace_root(&app)?)
 }
 
 #[tauri::command]
@@ -58,14 +100,9 @@ pub fn create_content(
     crate::content::create(&workspace_root(&app)?, &parent, &name, kind)
 }
 
-fn snap(app: &AppHandle) -> Snapshot {
-    let state = app.state::<AppState>();
-    let inner = state.inner.lock().unwrap();
-    inner.snapshot()
-}
-
-fn lock_state(app: &AppHandle) -> tauri::State<'_, AppState> {
-    app.state::<AppState>()
+#[tauri::command]
+pub fn trash_content(app: AppHandle, path: String) -> Result<(), String> {
+    crate::content::trash(&workspace_root(&app)?, &path)
 }
 
 #[tauri::command]
@@ -88,111 +125,6 @@ pub fn debug_open_temp_workspace(state: State<AppState>) -> Result<Snapshot, Str
 #[tauri::command]
 pub fn get_snapshot(state: State<AppState>) -> Snapshot {
     state.inner.lock().unwrap().snapshot()
-}
-
-#[tauri::command]
-pub fn create_notebook_cmd(app: AppHandle, name: String) -> Result<Snapshot, String> {
-    {
-        let state = lock_state(&app);
-        let mut inner = state.inner.lock().unwrap();
-        create_notebook(&mut inner, name)?;
-    }
-    persist_structural(&app)
-}
-
-#[tauri::command]
-pub fn rename_notebook_cmd(app: AppHandle, id: String, name: String) -> Result<Snapshot, String> {
-    {
-        let state = lock_state(&app);
-        let mut inner = state.inner.lock().unwrap();
-        inner
-            .data
-            .rename_notebook(&id, name)
-            .map_err(|e| e.to_string())?;
-    }
-    persist_structural(&app)
-}
-
-#[tauri::command]
-pub fn trash_notebook_cmd(app: AppHandle, id: String) -> Result<Snapshot, String> {
-    {
-        let state = lock_state(&app);
-        let mut inner = state.inner.lock().unwrap();
-        inner.data.trash_notebook(&id).map_err(|e| e.to_string())?;
-    }
-    persist_structural(&app)
-}
-
-#[tauri::command]
-pub fn restore_notebook_cmd(app: AppHandle, id: String) -> Result<Snapshot, String> {
-    {
-        let state = lock_state(&app);
-        let mut inner = state.inner.lock().unwrap();
-        inner
-            .data
-            .restore_notebook(&id)
-            .map_err(|e| e.to_string())?;
-    }
-    persist_structural(&app)
-}
-
-#[tauri::command]
-pub fn permanently_delete_notebook_cmd(app: AppHandle, id: String) -> Result<Snapshot, String> {
-    {
-        let state = lock_state(&app);
-        let mut inner = state.inner.lock().unwrap();
-        let root = inner
-            .workspace_root
-            .clone()
-            .ok_or_else(|| "尚未打开工作区".to_string())?;
-        inner
-            .data
-            .permanently_delete_notebook(&id)
-            .map_err(|e| e.to_string())?;
-        remove_notebook_dir(&root, &id).map_err(|e| e.to_string())?;
-    }
-    persist_structural(&app)
-}
-
-#[tauri::command]
-pub fn create_note_cmd(
-    app: AppHandle,
-    notebook_id: Option<String>,
-) -> Result<CreateNoteResult, String> {
-    let note_id = {
-        let state = lock_state(&app);
-        let mut inner = state.inner.lock().unwrap();
-        create_note(&mut inner, notebook_id)?
-    };
-    let snapshot = persist_structural(&app)?;
-    Ok(CreateNoteResult { snapshot, note_id })
-}
-
-#[tauri::command]
-pub fn update_note_cmd(
-    app: AppHandle,
-    id: String,
-    title: String,
-    body: String,
-) -> Result<Snapshot, String> {
-    let gen = {
-        let state = lock_state(&app);
-        let mut inner = state.inner.lock().unwrap();
-        inner
-            .data
-            .update_note(&id, title, body, now_nanos())
-            .map_err(|e| e.to_string())?;
-        inner.save_status = crate::state::SaveStatus::Dirty;
-        inner.save_generation += 1;
-        inner.save_generation
-    };
-    schedule_save(app.clone(), gen);
-    Ok(snap(&app))
-}
-
-#[tauri::command]
-pub fn save_workspace_now(app: AppHandle) -> Result<Snapshot, String> {
-    persist_structural(&app)
 }
 
 #[tauri::command]
@@ -229,16 +161,15 @@ pub fn start_oauth(app: AppHandle) -> Result<Snapshot, String> {
 
 #[tauri::command]
 pub fn logout(app: AppHandle) -> Result<Snapshot, String> {
+    app.state::<crate::sharing::ShareState>().stop_all();
     {
         let state = lock_state(&app);
         let mut inner = state.inner.lock().unwrap();
         auth::delete_session().map_err(|e| e.to_string())?;
         inner.session = None;
         inner.workspace_root = None;
-        inner.data = Workspace::new_empty();
         inner.debug_workspace = false;
         inner.sync_status = crate::state::SyncStatus::Idle;
-        inner.save_status = crate::state::SaveStatus::Saved;
         inner.error_message = None;
     }
     emit_snapshot(&app);
@@ -286,9 +217,8 @@ pub fn save_image_cmd(app: AppHandle, data: String, filename: String) -> Result<
         return Err("资源目录超出仓库".into());
     }
 
-    // Strip data URL prefix if present (e.g. "data:image/png;base64,")
     let raw = if data.contains(',') {
-        data.split(',').last().unwrap_or(&data)
+        data.split(',').next_back().unwrap_or(&data)
     } else {
         &data
     };

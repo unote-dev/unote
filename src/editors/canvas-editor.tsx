@@ -1,10 +1,12 @@
 import { Excalidraw, serializeAsJSON } from '@excalidraw/excalidraw'
 import { useCallback, useRef } from 'react'
 import { parseCanvasDocument } from '@/editors/canvas-document'
+import { useI18n } from '@/i18n/locale'
 
 import '@excalidraw/excalidraw/index.css'
 
 export function CanvasEditor({ content, dark, onChange }: { content: string, dark: boolean, onChange: (content: string) => void }) {
+  const { locale, t } = useI18n()
   const initializedRef = useRef(false)
   const onChangeRef = useRef(onChange)
   onChangeRef.current = onChange
@@ -26,11 +28,12 @@ export function CanvasEditor({ content, dark, onChange }: { content: string, dar
     onChangeRef.current(serializeAsJSON(elements, appState, files, 'local'))
   }, [])
   if (invalidContentRef.current || !initialDataRef.current)
-    return <div className="grid h-full place-items-center p-6 text-sm text-destructive">画布文件格式无效。为保护原文件，当前禁止编辑。</div>
+    return <div className="grid h-full place-items-center p-6 text-sm text-destructive">{t('invalidCanvas')}</div>
   return (
     <div className="h-full min-h-[520px]">
       <Excalidraw
         initialData={initialDataRef.current}
+        langCode={locale === 'zh' ? 'zh-CN' : 'en'}
         onChange={handleChange}
         theme={dark ? 'dark' : 'light'}
         UIOptions={{ canvasActions: { loadScene: false, saveToActiveFile: false } }}

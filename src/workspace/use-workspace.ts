@@ -1,4 +1,4 @@
-import type { CreateKind, WorkspaceSnapshot } from '@/domain/workspace'
+import type { CreateKind, DocumentEntry, FolderEntry, WorkspaceSnapshot } from '@/domain/workspace'
 
 import type { WorkspacePort } from '@/workspace/port'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -8,6 +8,7 @@ export function useWorkspace(enabled: boolean, port?: WorkspacePort) {
   const fallbackPort = useMemo(() => new DesktopWorkspacePort(), [])
   const activePort = port ?? fallbackPort
   const [snapshot, setSnapshot] = useState<WorkspaceSnapshot | null>(null)
+  const [trashRoots, setTrashRoots] = useState<Array<FolderEntry | DocumentEntry>>([])
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
   const pendingWriteRef = useRef<{ content: string, path: string } | null>(null)
   const writePromiseRef = useRef(Promise.resolve())
@@ -67,5 +68,15 @@ export function useWorkspace(enabled: boolean, port?: WorkspacePort) {
     setSnapshot(await activePort.createContent(parent, name, kind))
   }, [activePort, flush])
 
-  return { createContent, flush, refresh, selectDocument, snapshot, updateDocument }
+  const loadTrash = useCallback(async () => {
+    setTrashRoots(await activePort.getTrashTree())
+  }, [activePort])
+
+  const trashContent = useCallback(async (path: string) => {
+    await flush()
+    setSnapshot(await activePort.trashContent(path))
+    setTrashRoots(await activePort.getTrashTree())
+  }, [activePort, flush])
+
+  return { createContent, flush, loadTrash, refresh, selectDocument, snapshot, trashContent, trashRoots, updateDocument }
 }

@@ -1,9 +1,10 @@
 import type { MindElixirInstance, Theme, Topic } from 'mind-elixir'
 import NodeMenu from '@mind-elixir/node-menu'
 import MindElixir from 'mind-elixir'
-import { zh_CN } from 'mind-elixir/i18n'
+import { en, zh_CN } from 'mind-elixir/i18n'
 import { useEffect, useRef } from 'react'
 import { parseMindmapDocument, serializeMindmapDocument } from '@/editors/mindmap-document'
+import { useI18n } from '@/i18n/locale'
 import 'mind-elixir/style.css'
 import '@mind-elixir/node-menu/dist/style.css'
 
@@ -32,9 +33,12 @@ function applicationTheme(dark: boolean): Theme {
 }
 
 export function MindmapEditor({ content, dark, onChange }: { content: string, dark: boolean, onChange: (content: string) => void }) {
+  const { locale, t } = useI18n()
   const containerRef = useRef<HTMLDivElement>(null)
   const instanceRef = useRef<MindElixirInstance>(null)
   const onChangeRef = useRef(onChange)
+  const i18nRef = useRef({ locale, t })
+  i18nRef.current = { locale, t }
   const initialDocumentRef = useRef<ReturnType<typeof readDocument>>(undefined)
   initialDocumentRef.current ??= readDocument(content)
   const initialThemeRef = useRef(applicationTheme(dark))
@@ -47,7 +51,7 @@ export function MindmapEditor({ content, dark, onChange }: { content: string, da
       return { data: parseMindmapDocument(source), error: null }
     }
     catch (error) {
-      return { data: null, error: error instanceof Error ? error.message : '脑图文件格式无效' }
+      return { data: null, error: error instanceof Error ? error.message : t('invalidMindmap') }
     }
   }
 
@@ -60,17 +64,17 @@ export function MindmapEditor({ content, dark, onChange }: { content: string, da
       compact: true,
       direction: MindElixir.RIGHT,
       draggable: true,
-      contextMenu: { locale: zh_CN },
+      contextMenu: { locale: i18nRef.current.locale === 'zh' ? zh_CN : en },
       el: containerRef.current,
       keypress: true,
-      newTopicName: '新节点',
-      overflowHidden: true,
+      newTopicName: i18nRef.current.t('newNode'),
+      overflowHidden: false,
       theme: initialThemeRef.current,
       toolBar: true,
     })
     instanceRef.current = mind
     // NodeMenu 5 reads the locale from the instance instead of contextMenu.locale.
-    mind.locale = 'zh_CN'
+    mind.locale = i18nRef.current.locale === 'zh' ? 'zh_CN' : 'en'
     mind.install(NodeMenu)
     mind.init(initialDataRef.current)
 
@@ -113,11 +117,17 @@ export function MindmapEditor({ content, dark, onChange }: { content: string, da
     instanceRef.current?.changeTheme(applicationTheme(dark))
   }, [dark])
 
+  useEffect(() => {
+    if (instanceRef.current)
+      instanceRef.current.locale = locale === 'zh' ? 'zh_CN' : 'en'
+  }, [locale])
+
   if (parsed.error) {
     return (
       <div className="grid h-full place-items-center p-6 text-sm text-destructive">
         {parsed.error}
-        。为保护原文件，当前禁止编辑。
+        {locale === 'zh' ? '。' : '. '}
+        {t('mindmapProtected')}
       </div>
     )
   }

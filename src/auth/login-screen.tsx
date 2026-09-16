@@ -1,6 +1,13 @@
 import { Button } from '@/components/ui/button'
+import { useI18n } from '@/i18n/locale'
+import { GITHUB_REPO_URL } from '@/lib/github'
+import { cn } from '@/lib/utils'
 
 export function LoginScreen({ desktopAvailable, error, onLogin, pending }: { desktopAvailable: boolean, error: string | null, onLogin: () => void, pending: boolean }) {
+  const { locale, setLocale, t } = useI18n()
+  const privacy = t('loginPrivacy')
+  const highlight = t('loginPrivacyHighlight')
+  const highlightIndex = privacy.indexOf(highlight)
   return (
     <main className="grid min-h-screen place-items-center bg-muted/30 p-6">
       <section className="w-full max-w-sm rounded-lg border bg-card p-6 text-card-foreground shadow-sm">
@@ -8,39 +15,51 @@ export function LoginScreen({ desktopAvailable, error, onLogin, pending }: { des
           <div className="mb-4 size-10">
             <UnoteLogo />
           </div>
-          <h1 className="text-xl font-semibold">登录 Unote</h1>
-          <p className="mt-2 text-sm text-muted-foreground">关联 Git 账号，Unote 会创建你的专用私有仓库。</p>
+          <h1 className="text-xl font-semibold">{t('loginTitle')}</h1>
+          <p className="mt-2 text-sm text-muted-foreground">{t('loginSubtitle')}</p>
         </div>
 
         <div className="flex flex-col gap-2">
           <Button className="w-full justify-start gap-2" disabled={!desktopAvailable || pending} onClick={onLogin}>
             <GiteeIcon />
-            {pending ? '等待 Gitee 授权…' : '使用 Gitee 登录'}
+            {pending ? t('waitingGitee') : t('loginGitee')}
           </Button>
           <Button className="w-full justify-start gap-2" disabled variant="outline">
             <GitHubIcon />
-            使用 GitHub 登录（即将支持）
+            {t('loginGitHubSoon')}
           </Button>
           <Button className="w-full justify-start gap-2" disabled variant="outline">
             <GitLabIcon />
-            使用 GitLab 登录（即将支持）
+            {t('loginGitLabSoon')}
           </Button>
         </div>
 
         <div className="mt-4 rounded-md border border-blue-200 bg-blue-50 px-3.5 py-3 text-sm text-blue-800 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-300">
           <p>
-            文档存储在
-            <b>你的私有仓库</b>
-            中，仅你本人可访问。unote 不收集任何数据。
+            {highlightIndex === -1
+              ? privacy
+              : (
+                  <>
+                    {privacy.slice(0, highlightIndex)}
+                    <b>{highlight}</b>
+                    {privacy.slice(highlightIndex + highlight.length)}
+                  </>
+                )}
           </p>
         </div>
 
         {error && <p className="mt-3 text-sm text-destructive" role="alert">{error}</p>}
 
-        <div className="mt-5 border-t pt-4 text-center text-xs text-muted-foreground">
-          开源项目 ·
-          {' '}
-          <a className="underline underline-offset-2" href="https://github.com/unote-dev/unote" rel="noreferrer" target="_blank">github.com/unote-dev/unote</a>
+        <div className="mt-5 space-y-3 border-t pt-4 text-xs text-muted-foreground">
+          <div className="flex items-center justify-center gap-3">
+            <button className={cn('hover:text-foreground', locale === 'zh' && 'font-medium text-foreground')} onClick={() => setLocale('zh')} type="button">{t('languageChinese')}</button>
+            <button className={cn('hover:text-foreground', locale === 'en' && 'font-medium text-foreground')} onClick={() => setLocale('en')} type="button">{t('languageEnglish')}</button>
+          </div>
+          <p className="text-center">
+            {t('openSource')}
+            {' '}
+            <a className="underline underline-offset-2" href={GITHUB_REPO_URL} rel="noreferrer" target="_blank">github.com/unote-dev/unote</a>
+          </p>
         </div>
       </section>
     </main>

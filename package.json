@@ -1,9 +1,9 @@
 {
   "name": "unote",
   "type": "module",
-  "version": "0.1.0",
-  "packageManager": "pnpm@11.25.0",
+  "version": "0.2.0",
   "private": true,
+  "packageManager": "pnpm@11.25.0",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json && vite build",

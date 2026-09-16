@@ -216,6 +216,96 @@ input {
   border-radius: calc(var(--radius) - 2px);
 }
 
+/* Code block theming */
+.unote-markdown-editor .cm-editor {
+  background: var(--background);
+  /* border-radius: var(--radius); */
+  /* border: 1px solid var(--border); */
+  color: var(--foreground);
+}
+
+.unote-markdown-editor .cm-editor .cm-content {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
+  caret-color: var(--foreground);
+}
+
+.unote-markdown-editor .cm-editor .cm-gutters {
+  background: transparent;
+  border-right: 1px solid var(--border);
+  color: var(--muted-foreground);
+}
+
+.unote-markdown-editor .cm-editor .cm-activeLineGutter {
+  background: transparent;
+}
+
+.unote-markdown-editor .cm-editor .cm-activeLine {
+  background: var(--accent);
+}
+
+.unote-markdown-editor .cm-editor .cm-selectionBackground,
+.unote-markdown-editor .cm-editor .cm-selectionBackground * {
+  color: var(--foreground) !important;
+}
+
+.unote-markdown-editor .cm-editor.cm-focused {
+  outline: 1px solid var(--ring);
+  outline-offset: -1px;
+}
+
+.unote-markdown-editor .cm-editor .cm-line {
+  color: var(--foreground);
+}
+
+.unote-markdown-editor .cm-editor .cm-placeholder {
+  color: var(--muted-foreground);
+}
+
+.unote-markdown-editor .cm-tooltip {
+  background: var(--popover);
+  color: var(--popover-foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+/* Code block language selector (native select in CodeMirror) */
+.unote-markdown-editor .cm-codeBlock-language-select,
+.unote-markdown-editor .cm-codeBlock-language-select option,
+.unote-markdown-editor select.cm-codeBlock-language-select {
+  background: var(--background);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) - 2px);
+  font-size: 0.75rem;
+  padding: 0.125rem 0.375rem;
+}
+
+.unote-markdown-editor .cm-codeBlock-language-select option {
+  background: var(--popover);
+  color: var(--popover-foreground);
+}
+
+/* MDXEditor Radix select dropdowns */
+.unote-markdown-editor .mdxeditor-select-content,
+.unote-markdown-editor [role='listbox'] {
+  background: var(--popover);
+  color: var(--popover-foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.unote-markdown-editor .mdxeditor-select-content [role='option'],
+.unote-markdown-editor [role='listbox'] [role='option'] {
+  color: var(--popover-foreground);
+}
+
+.unote-markdown-editor .mdxeditor-select-content [role='option']:hover,
+.unote-markdown-editor .mdxeditor-select-content [role='option'][data-highlighted],
+.unote-markdown-editor [role='listbox'] [role='option']:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
 .unote-mindmap .map-container {
   width: 100%;
   height: 100%;

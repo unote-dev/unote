@@ -1,6 +1,6 @@
 import { invoke, isTauri } from '@tauri-apps/api/core'
 
-export type SyncStatus = 'idle' | 'saved' | 'syncing' | 'synced' | 'error'
+export type SyncStatus = 'idle' | 'syncing' | 'synced' | 'error'
 
 export interface AuthSession {
   avatarUrl: string

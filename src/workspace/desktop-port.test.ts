@@ -33,4 +33,21 @@ describe('desktopWorkspacePort', () => {
     expect(invoke).toHaveBeenNthCalledWith(1, 'create_content', { kind: 'markdown', name: '计划', parent: '工作' })
     expect(snapshot.selectedPath).toBe('工作/计划.md')
   })
+
+  it('moves content to trash and exposes the trash tree', async () => {
+    const trashed = { children: [], kind: 'markdown', name: '计划', path: '.trash/工作/计划.md', updatedAt: 1 }
+    invoke.mockResolvedValueOnce(undefined)
+    invoke.mockResolvedValueOnce([])
+    invoke.mockResolvedValueOnce([])
+    const port = new DesktopWorkspacePort()
+    await port.trashContent('工作/计划.md')
+    const roots = await port.getTrashTree()
+    expect(invoke).toHaveBeenNthCalledWith(1, 'trash_content', { path: '工作/计划.md' })
+    expect(invoke).toHaveBeenNthCalledWith(2, 'get_content_tree')
+    expect(invoke).toHaveBeenNthCalledWith(3, 'get_trash_tree')
+    expect(roots).toEqual([])
+
+    invoke.mockResolvedValueOnce([trashed])
+    expect(await port.getTrashTree()).toEqual([{ kind: 'markdown', name: '计划', path: '.trash/工作/计划.md', updatedAt: 1 }])
+  })
 })

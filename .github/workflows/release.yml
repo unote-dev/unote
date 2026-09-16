@@ -70,6 +70,20 @@ jobs:
             throw 'Missing repository secret: TAURI_SIGNING_PRIVATE_KEY'
           }
 
+      - name: Extract changelog
+        id: changelog
+        shell: pwsh
+        run: |
+          $tag = '${{ github.ref_name }}'
+          $markdown = Get-Content CHANGELOG.md -Raw
+          $pattern = "(?ms)^## $([regex]::Escape($tag))\b[^\n]*\n+(.*?)(?=^## |\z)"
+          $match = [regex]::Match($markdown, $pattern)
+          $notes = if ($match.Success) { $match.Groups[1].Value.Trim() } else { "UNote $tag" }
+          $eof = "CHANGELOG_EOF_$([guid]::NewGuid().ToString('N'))"
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "body<<$eof"
+          Add-Content -Path $env:GITHUB_OUTPUT -Value $notes
+          Add-Content -Path $env:GITHUB_OUTPUT -Value $eof
+
       - name: Build and publish NSIS installer
         uses: tauri-apps/tauri-action@v0
         env:
@@ -79,10 +93,7 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: 'UNote ${{ github.ref_name }}'
-          releaseBody: |
-            Windows x64 NSIS installer for UNote.
-
-            The installer lets you choose the installation scope and directory.
+          releaseBody: ${{ steps.changelog.outputs.body }}
           releaseDraft: false
           prerelease: false
           updaterJsonPreferNsis: true

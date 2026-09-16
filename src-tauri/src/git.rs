@@ -131,9 +131,9 @@ pub fn commit_if_changed(repo: &Path, message: &str) -> Result<bool, GitError> {
         }
     }
 
-    let sig = r.signature().or_else(|_| {
-        git2::Signature::now("unote", "unote@local")
-    })?;
+    let sig = r
+        .signature()
+        .or_else(|_| git2::Signature::now("unote", "unote@local"))?;
 
     let parents: Vec<&git2::Commit> = match &parent_commit {
         Some(c) => vec![c],
@@ -177,7 +177,9 @@ pub fn analyze_history(repo: &Path) -> Result<HistoryRelation, GitError> {
     }
     let r = Repository::open(repo)?;
     let local_oid = match r.head() {
-        Ok(head) => head.target().ok_or_else(|| GitError::Message("HEAD 无目标".into()))?,
+        Ok(head) => head
+            .target()
+            .ok_or_else(|| GitError::Message("HEAD 无目标".into()))?,
         Err(_) => return Ok(HistoryRelation::NoRemote),
     };
     let branch = current_branch(repo)?.or_else(|| preferred_remote_branch(repo));
@@ -222,9 +224,7 @@ pub fn fast_forward(repo: &Path, branch: &str) -> Result<(), GitError> {
         &format!("fast-forward to origin/{branch}"),
     )?;
     // 更新 HEAD 指向的工作目录
-    r.checkout_head(Some(
-        git2::build::CheckoutBuilder::new().force(),
-    ))?;
+    r.checkout_head(Some(git2::build::CheckoutBuilder::new().force()))?;
     let _ = remote_commit;
     Ok(())
 }
@@ -271,35 +271,27 @@ mod tests {
         let dir = tempdir().unwrap();
         let repo = dir.path();
         ensure_repo(repo).unwrap();
-        std::fs::write(
-            repo.join("notebooks.json"),
-            "{\"inbox_id\":\"\",\"notebooks\":[]}",
-        )
-        .unwrap();
-        assert!(commit_if_changed(repo, "unote: 更新笔记").unwrap());
+        std::fs::write(repo.join("readme.md"), "# unote\n").unwrap();
+        assert!(commit_if_changed(repo, "unote: 同步文档").unwrap());
 
         // 验证有1个 commit
         let r = Repository::open(repo).unwrap();
         let head = r.head().unwrap();
         let commit = r.find_commit(head.target().unwrap()).unwrap();
-        assert_eq!(commit.summary(), Some("unote: 更新笔记"));
+        assert_eq!(commit.summary(), Some("unote: 同步文档"));
         assert_eq!(commit.author().name(), Some("unote"));
         assert_eq!(commit.author().email(), Some("unote@local"));
 
         // 无变更时跳过
-        assert!(!commit_if_changed(repo, "unote: 更新笔记").unwrap());
+        assert!(!commit_if_changed(repo, "unote: 同步文档").unwrap());
 
         // 再次变更后新建 commit
-        std::fs::write(
-            repo.join("notebooks.json"),
-            "{\"inbox_id\":\"x\",\"notebooks\":[]}",
-        )
-        .unwrap();
-        assert!(commit_if_changed(repo, "unote: 更新笔记").unwrap());
+        std::fs::write(repo.join("readme.md"), "# unote\n\nupdated\n").unwrap();
+        assert!(commit_if_changed(repo, "unote: 同步文档").unwrap());
 
         let head2 = r.head().unwrap();
         let commit2 = r.find_commit(head2.target().unwrap()).unwrap();
-        assert_eq!(commit2.summary(), Some("unote: 更新笔记"));
+        assert_eq!(commit2.summary(), Some("unote: 同步文档"));
         assert_eq!(commit2.author().name(), Some("unote"));
         assert_eq!(commit2.author().email(), Some("unote@local"));
     }
@@ -310,11 +302,8 @@ mod tests {
         let repo = dir.path();
         ensure_repo(repo).unwrap();
         std::fs::write(repo.join("a.txt"), "a").unwrap();
-        commit_if_changed(repo, "unote: 更新笔记").unwrap();
-        assert_eq!(
-            analyze_history(repo).unwrap(),
-            HistoryRelation::NoRemote
-        );
+        commit_if_changed(repo, "unote: 同步文档").unwrap();
+        assert_eq!(analyze_history(repo).unwrap(), HistoryRelation::NoRemote);
     }
 
     #[test]
@@ -324,10 +313,7 @@ mod tests {
         ensure_repo(repo).unwrap();
         let r = Repository::open(repo).unwrap();
         let cfg = r.config().unwrap();
-        assert_eq!(
-            cfg.get_entry("user.name").unwrap().value(),
-            Some("unote")
-        );
+        assert_eq!(cfg.get_entry("user.name").unwrap().value(), Some("unote"));
         assert_eq!(
             cfg.get_entry("user.email").unwrap().value(),
             Some("unote@local")

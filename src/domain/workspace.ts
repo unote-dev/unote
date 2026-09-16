@@ -1,4 +1,4 @@
-export type DocumentKind = 'markdown' | 'canvas' | 'mindmap'
+export type DocumentKind = 'markdown' | 'canvas' | 'mindmap' | 'diagram'
 export type CreateKind = DocumentKind | 'folder'
 
 export interface DocumentEntry {

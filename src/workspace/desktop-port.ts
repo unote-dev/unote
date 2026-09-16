@@ -5,7 +5,7 @@ import { flattenDocuments } from '@/domain/workspace'
 
 interface BackendEntry {
   children: BackendEntry[]
-  kind: 'folder' | 'markdown' | 'canvas' | 'mindmap'
+  kind: 'folder' | 'markdown' | 'canvas' | 'mindmap' | 'diagram'
   name: string
   path: string
   updatedAt: number
@@ -42,6 +42,10 @@ export class DesktopWorkspacePort implements WorkspacePort {
     return structuredClone(this.#snapshot)
   }
 
+  async getTrashTree() {
+    return (await invoke<BackendEntry[]>('get_trash_tree')).map(toEntry)
+  }
+
   async selectDocument(path: string) {
     if (!this.#snapshot)
       await this.getSnapshot()
@@ -54,5 +58,10 @@ export class DesktopWorkspacePort implements WorkspacePort {
     await invoke('write_document', { content, path })
     if (this.#snapshot?.selectedPath === path)
       this.#snapshot = { ...this.#snapshot, selectedContent: content }
+  }
+
+  async trashContent(path: string) {
+    await invoke('trash_content', { path })
+    return this.getSnapshot()
   }
 }
