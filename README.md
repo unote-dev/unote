@@ -1,78 +1,76 @@
 <p align="center">
-  <img src="src-tauri/icons/icon.png" width="128" alt="UNote Logo" />
+  <img src="src-tauri/icons/icon.png" width="96" alt="UNote logo" />
 </p>
 
 <h1 align="center">UNote</h1>
 
-<p align="center">Git 优先的轻量桌面文档应用。</p>
-
 <p align="center">
-  <a href="https://github.com/unote-dev/unote/releases/latest">下载</a> ·
-  <a href="#开发">开发</a> ·
-  <a href="#技术栈">技术栈</a>
+  Git-first desktop notes. Your files stay in <strong>your</strong> private Git repository.
 </p>
 
----
+<p align="center">
+  English ·
+  <a href="./README.zh-CN.md">简体中文</a>
+</p>
 
-## 简介
+<p align="center">
+  <a href="https://github.com/unote-dev/unote/actions/workflows/ci.yml"><img src="https://github.com/unote-dev/unote/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <a href="https://github.com/unote-dev/unote/actions/workflows/release.yml"><img src="https://github.com/unote-dev/unote/actions/workflows/release.yml/badge.svg" alt="Release" /></a>
+  <a href="https://github.com/unote-dev/unote/releases/latest"><img src="https://img.shields.io/github/v/release/unote-dev/unote" alt="Latest release" /></a>
+  <a href="https://github.com/unote-dev/unote/releases/latest"><img src="https://img.shields.io/badge/platform-Windows%20x64-0078D6?logo=windows&logoColor=white" alt="Windows x64" /></a>
+  <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT" />
+</p>
 
-UNote 是一个基于 Git 的个人文档管理工具。你的文档以真实目录和文件的形式存储在 **你的 Git 私有仓库** 中，UNote 负责编辑、导航与安全同步。
+<p align="center">
+  <img src="docs/screenshots/hero.png" alt="UNote in light and dark mode" />
+</p>
 
-- **数据主权**：文档存储在你的私有仓库，只有你自己可以访问
-- **离线优先**：所有编辑先写入本地，网络可用时自动同步
-- **开源透明**：代码完全开源，无遥测、无数据收集
+## Features
 
-## 功能
+- **Markdown** — rich editing on top of real `.md` files ([MDXEditor](https://www.mdxeditor.dev/))
+- **Canvas** — freeform drawing ([Excalidraw](https://excalidraw.com/))
+- **Mind maps** — node-based outlines ([Mind Elixir](https://docs.mind-elixir.com/))
+- **Diagrams** — Draw.io via [diagrams.net](https://www.diagrams.net/)
+- **Folders** — nested directories, no extra metadata layer
+- **Trash** — deleted notes move to `.trash` in the repo
+- **Git sync** — edit locally first, then commit and push
+- **Share** — read-only Cloudflare Quick Tunnel snapshot; the key stays in the URL fragment (`#…`)
+- **i18n** — Chinese and English UI
+- **Assets** — images live in `.assets/` and can be referenced from notes
+- **Themes** — light, dark, or follow the system
+- **Updates** — in-app check against the latest GitHub Release
 
-- **Markdown 编辑**：基于 MDXEditor 的富文本编辑体验
-- **画布文档**：基于 Excalidraw 的自由绘图与白板
-- **脑图**：基于 Mind Elixir 的节点式思维导图
-- **图表文档**：基于 diagrams.net 的 Draw.io 编辑器
-- **文件夹管理**：支持任意嵌套目录结构
-- **回收站**：文档移到仓库 `.trash` 目录
-- **临时分享**：Cloudflare Quick Tunnel 只读快照，密钥只在链接 `#` 之后
-- **Git 同步**：自动 commit + push，支持多设备同步
-- **中英界面**：可在账户菜单切换
-- **资源管理**：图片等附件存储在 `.assets/` 目录，文档可直接引用
-- **暗色模式**：跟随系统或手动切换
+## Install
 
-## 认证提供方
+Download the Windows NSIS installer from [Releases](https://github.com/unote-dev/unote/releases/latest).
 
-| 提供方 | 状态     |
-| ------ | -------- |
-| Gitee  | 已支持   |
-| GitHub | 即将支持 |
-| GitLab | 即将支持 |
+macOS and Linux builds are not available yet.
 
-## 下载
+## Git providers
 
-从 [GitHub Releases](https://github.com/unote-dev/unote/releases/latest) 下载最新版本。
+| Provider | Status |
+| -------- | ------ |
+| Gitee | Supported |
+| GitHub | Planned |
+| GitLab | Planned |
 
-当前支持：
+## Development
 
-- Windows（NSIS 安装包 / 便携版）
-
-> macOS 和 Linux 支持将在后续版本中提供。
-
-## 开发
-
-### 环境要求
+Requirements:
 
 - [Node.js](https://nodejs.org/) 22+
 - [pnpm](https://pnpm.io/)
-- [Rust](https://www.rust-lang.org/) + MSVC (Windows) / Xcode (macOS)
-- [Tauri 2 前置依赖](https://v2.tauri.app/start/prerequisites/)
+- [Rust](https://www.rust-lang.org/) + MSVC (Windows)
+- [Tauri 2 prerequisites](https://v2.tauri.app/start/prerequisites/)
 
-### 快速开始
-
-在 `src-tauri/src/constants.rs` 中填写你的 Gitee OAuth 应用凭据（回调地址 `http://127.0.0.1:17331/callback`），然后：
+Create a Gitee OAuth app with callback `http://127.0.0.1:17331/callback`, put the credentials in `src-tauri/src/constants.rs`, then:
 
 ```bash
 pnpm install
 pnpm tauri dev
 ```
 
-### 检查
+### Checks
 
 ```bash
 pnpm lint
@@ -81,33 +79,28 @@ pnpm build
 cd src-tauri && cargo test
 ```
 
-### 构建发布
+### Release
 
 ```bash
 pnpm tauri build
 ```
 
-打 tag 自动触发 GitHub Actions 构建并发布：
+Pushing a `v*.*.*` tag runs GitHub Actions, which builds the NSIS installer and publishes a Release. See [docs/RELEASING.md](docs/RELEASING.md).
 
-```bash
-git tag v0.2.0
-git push origin v0.2.0
-```
+## Tech stack
 
-## 技术栈
+| Layer | Stack |
+| ----- | ----- |
+| Desktop | [Tauri 2](https://v2.tauri.app/) |
+| Frontend | React 19, TypeScript, Vite |
+| UI | Tailwind CSS 4, [shadcn/ui](https://ui.shadcn.com/) |
+| Markdown | [MDXEditor](https://www.mdxeditor.dev/) |
+| Canvas | [Excalidraw](https://excalidraw.com/) |
+| Mind maps | [Mind Elixir](https://docs.mind-elixir.com/) |
+| Backend | Rust (`git2`, `reqwest`, `keyring`) |
+| Auth | OAuth 2.0, credentials in the system keyring |
+| Sync | Git (libgit2) |
 
-| 层            | 技术                                                 |
-| ------------- | ---------------------------------------------------- |
-| 桌面框架      | [Tauri 2](https://v2.tauri.app/)                     |
-| 前端          | React 19 + TypeScript 6 + Vite 8                     |
-| UI            | Tailwind CSS 4 + [shadcn/ui](https://ui.shadcn.com/) |
-| Markdown 编辑 | [MDXEditor](https://www.mdxeditor.dev/)              |
-| 画布          | [Excalidraw](https://excalidraw.com/)                |
-| 脑图          | [Mind Elixir](https://docs.mind-elixir.com/)         |
-| 后端          | Rust (git2, reqwest, keyring)                        |
-| 认证          | OAuth 2.0 + 系统 Keyring 存储                        |
-| 同步          | Git (libgit2)                                        |
+## License
 
-## 开源协议
-
-[MIT](LICENSE)
+MIT
