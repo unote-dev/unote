@@ -9,31 +9,36 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable'
 import { UpdateDialog } from '@/components/update-dialog'
+import { treeEntryVariant } from '@/domain/sidebar-tree'
 import { flattenDocuments, isFolder } from '@/domain/workspace'
 import { EditorSurface } from '@/editors/editor-surface'
 import { useUpdater } from '@/hooks/use-updater'
 import { cn } from '@/lib/utils'
 import { useWorkspace } from '@/workspace/use-workspace'
 
-function TreeNode({ entry, expandedPaths, onFolderSelect, onToggle, onSelect, selectedDirectory, selectedPath }: { entry: FolderEntry | DocumentEntry, expandedPaths: Set<string>, onFolderSelect: (path: string) => void, onToggle: (path: string) => void, onSelect: (path: string) => void, selectedDirectory: string, selectedPath: string | null }) {
+function TreeNode({ entry, expandedPaths, onFolderSelect, onToggle, onSelect, selectedPath }: { entry: FolderEntry | DocumentEntry, expandedPaths: Set<string>, onFolderSelect: (path: string) => void, onToggle: (path: string) => void, onSelect: (path: string) => void, selectedPath: string | null }) {
   if (!isFolder(entry)) {
     const DocumentIcon = entry.kind === 'canvas' ? Boxes : entry.kind === 'mindmap' ? Network : FileText
     return (
-      <Button className="h-8 w-full justify-start px-2 font-normal" onClick={() => onSelect(entry.path)} variant={selectedPath === entry.path ? 'secondary' : 'ghost'}>
+      <Button className="h-8 w-full justify-start px-2 font-normal" onClick={() => onSelect(entry.path)} variant={treeEntryVariant(entry, selectedPath)}>
         <DocumentIcon className="text-muted-foreground" />
         <span className="truncate">{entry.name}</span>
       </Button>
     )
   }
   const expanded = expandedPaths.has(entry.path)
+  const selectFolder = () => {
+    onToggle(entry.path)
+    onFolderSelect(entry.path)
+  }
   return (
     <div>
-      <Button className="h-8 w-full justify-start px-2 font-medium" onClick={() => { onToggle(entry.path); onFolderSelect(entry.path) }} variant={selectedDirectory === entry.path ? 'secondary' : 'ghost'}>
+      <Button className="h-8 w-full justify-start px-2 font-medium" onClick={selectFolder} variant={treeEntryVariant(entry, selectedPath)}>
         <ChevronDown className={cn('size-3.5 text-muted-foreground transition-transform', !expanded && '-rotate-90')} />
         <Folder className="size-4 text-muted-foreground" />
         <span className="truncate">{entry.name}</span>
       </Button>
-      {expanded && <div className="ml-4 border-l pl-1">{entry.children.map(child => <TreeNode entry={child} expandedPaths={expandedPaths} key={child.path} onFolderSelect={onFolderSelect} onSelect={onSelect} onToggle={onToggle} selectedDirectory={selectedDirectory} selectedPath={selectedPath} />)}</div>}
+      {expanded && <div className="ml-4 border-l pl-1">{entry.children.map(child => <TreeNode entry={child} expandedPaths={expandedPaths} key={child.path} onFolderSelect={onFolderSelect} onSelect={onSelect} onToggle={onToggle} selectedPath={selectedPath} />)}</div>}
     </div>
   )
 }
@@ -142,7 +147,7 @@ export function App() {
               )}
             </div>
             <nav className="min-h-0 flex-1 space-y-1 overflow-auto p-2">
-              <Button className="w-full justify-start px-2 font-normal" onClick={() => setSelectedDirectory('')} variant={selectedDirectory === '' ? 'secondary' : 'ghost'}>
+              <Button className="w-full justify-start px-2 font-normal" onClick={() => setSelectedDirectory('')} variant="ghost">
                 <Files />
                 全部
               </Button>
@@ -152,7 +157,7 @@ export function App() {
               </Button>
               <div className="mt-2 space-y-1 border-t pt-2">
                 {workspace.snapshot.roots.length
-                  ? workspace.snapshot.roots.map(root => <TreeNode entry={root} expandedPaths={expandedPaths} key={root.path} onFolderSelect={setSelectedDirectory} onSelect={selectDocument} onToggle={toggleExpand} selectedDirectory={selectedDirectory} selectedPath={workspace.snapshot?.selectedPath ?? null} />)
+                  ? workspace.snapshot.roots.map(root => <TreeNode entry={root} expandedPaths={expandedPaths} key={root.path} onFolderSelect={setSelectedDirectory} onSelect={selectDocument} onToggle={toggleExpand} selectedPath={workspace.snapshot?.selectedPath ?? null} />)
                   : <p className="px-2 py-6 text-center text-sm text-muted-foreground">仓库里还没有文档</p>}
               </div>
             </nav>
