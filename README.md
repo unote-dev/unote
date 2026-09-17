@@ -48,11 +48,11 @@ macOS and Linux builds are not available yet.
 
 ## Git providers
 
-| Provider | Status |
-| -------- | ------ |
-| Gitee | Supported |
-| GitHub | Planned |
-| GitLab | Planned |
+| Provider | Status    |
+| -------- | --------- |
+| Gitee    | Supported |
+| GitHub   | Planned   |
+| GitLab   | Planned   |
 
 ## Development
 
@@ -89,17 +89,17 @@ Pushing a `v*.*.*` tag runs GitHub Actions, which builds the NSIS installer and 
 
 ## Tech stack
 
-| Layer | Stack |
-| ----- | ----- |
-| Desktop | [Tauri 2](https://v2.tauri.app/) |
-| Frontend | React 19, TypeScript, Vite |
-| UI | Tailwind CSS 4, [shadcn/ui](https://ui.shadcn.com/) |
-| Markdown | [MDXEditor](https://www.mdxeditor.dev/) |
-| Canvas | [Excalidraw](https://excalidraw.com/) |
-| Mind maps | [Mind Elixir](https://docs.mind-elixir.com/) |
-| Backend | Rust (`git2`, `reqwest`, `keyring`) |
-| Auth | OAuth 2.0, credentials in the system keyring |
-| Sync | Git (libgit2) |
+| Layer     | Stack                                               |
+| --------- | --------------------------------------------------- |
+| Desktop   | [Tauri 2](https://v2.tauri.app/)                    |
+| Frontend  | React 19, TypeScript, Vite                          |
+| UI        | Tailwind CSS 4, [shadcn/ui](https://ui.shadcn.com/) |
+| Markdown  | [MDXEditor](https://www.mdxeditor.dev/)             |
+| Canvas    | [Excalidraw](https://excalidraw.com/)               |
+| Mind maps | [Mind Elixir](https://docs.mind-elixir.com/)        |
+| Backend   | Rust (`git2`, `reqwest`, `keyring`)                 |
+| Auth      | OAuth 2.0, credentials in the system keyring        |
+| Sync      | Git (libgit2)                                       |
 
 ## License
 

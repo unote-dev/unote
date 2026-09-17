@@ -48,9 +48,9 @@ macOS 和 Linux 暂未提供。
 
 ## Git 提供方
 
-| 提供方 | 状态 |
-| ------ | ---- |
-| Gitee | 已支持 |
+| 提供方 | 状态     |
+| ------ | -------- |
+| Gitee  | 已支持   |
 | GitHub | 即将支持 |
 | GitLab | 即将支持 |
 
@@ -89,17 +89,17 @@ pnpm tauri build
 
 ## 技术栈
 
-| 层 | 技术 |
-| -- | ---- |
-| 桌面 | [Tauri 2](https://v2.tauri.app/) |
-| 前端 | React 19、TypeScript、Vite |
-| UI | Tailwind CSS 4、[shadcn/ui](https://ui.shadcn.com/) |
-| Markdown | [MDXEditor](https://www.mdxeditor.dev/) |
-| 画布 | [Excalidraw](https://excalidraw.com/) |
-| 脑图 | [Mind Elixir](https://docs.mind-elixir.com/) |
-| 后端 | Rust（`git2`、`reqwest`、`keyring`） |
-| 认证 | OAuth 2.0，凭据存系统 Keyring |
-| 同步 | Git（libgit2） |
+| 层       | 技术                                                |
+| -------- | --------------------------------------------------- |
+| 桌面     | [Tauri 2](https://v2.tauri.app/)                    |
+| 前端     | React 19、TypeScript、Vite                          |
+| UI       | Tailwind CSS 4、[shadcn/ui](https://ui.shadcn.com/) |
+| Markdown | [MDXEditor](https://www.mdxeditor.dev/)             |
+| 画布     | [Excalidraw](https://excalidraw.com/)               |
+| 脑图     | [Mind Elixir](https://docs.mind-elixir.com/)        |
+| 后端     | Rust（`git2`、`reqwest`、`keyring`）                |
+| 认证     | OAuth 2.0，凭据存系统 Keyring                       |
+| 同步     | Git（libgit2）                                      |
 
 ## 开源协议
 
